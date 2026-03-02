@@ -26,6 +26,14 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+# STREAMLIT & systemfiles
+.streamlit/*
+!.streamlit/config.toml
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
 # PyInstaller
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
