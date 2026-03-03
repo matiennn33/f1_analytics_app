@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import streamlit as st
 import socket
 import os
 import fastf1
 from utils.styles import inject_global_css
-from views import landing, dashboard, features, architecture, documentation
+from views import landing, dashboard, architecture, help as help_page
 
 socket.setdefaulttimeout(30)
 os.makedirs("cache", exist_ok=True)
@@ -38,9 +40,7 @@ if st.session_state["current_route"] == "landing":
     landing.render()
 elif st.session_state["current_route"] == "dashboard":
     dashboard.render()
-elif st.session_state["current_route"] == "features":
-    features.render()
+elif st.session_state["current_route"] == "help":
+    help_page.render()
 elif st.session_state["current_route"] == "architecture":
     architecture.render()
-elif st.session_state["current_route"] == "documentation":
-    documentation.render()

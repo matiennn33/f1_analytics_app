@@ -1,26 +1,51 @@
+from __future__ import annotations
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from typing import Optional, Dict
+
 from utils.plotting import apply_plotly_style
 from utils.session_store import get_cached_laps, get_cached_results
+from utils.logger import log_error, log_info
+from config import COLORS, FONTS
 
-BG_CARD = "#121212"
-BORDER = "#27272a"
-TEXT_M = "#a1a1aa"
-TEXT_W = "#ffffff"
+# Use config colors
+BG_CARD = COLORS["bg_card"]
+BORDER = COLORS["border"]
+TEXT_M = COLORS["text_muted"]
+TEXT_W = COLORS["text_white"]
+
+# Compound colors (tire compounds)
+COMPOUND_COLORS: Dict[str, str] = {
+    "SOFT": "#FF3333",
+    "MEDIUM": "#FFDD57",
+    "HARD": "#F0F0F0",
+    "INTERMEDIATE": "#39B54A",
+    "WET": "#1E90FF",
+    "UNKNOWN": "#808080",
+}
 
 
-def render(session):
+def render(session) -> None:
+    """
+    Render strategy and tyres analysis tab with stint breakdown.
+
+    Args:
+        session: FastF1 session object
+    """
     st.markdown("### <i class='fa-solid fa-stopwatch-20'></i> Strategy & Tyres", unsafe_allow_html=True)
 
-    with st.spinner("Elaborazione dati strategia..."):
+    with st.spinner("📊 Processing strategy data..."):
         try:
             laps = get_cached_laps(session)
             stints = laps[["Driver", "Stint", "Compound", "LapNumber", "FreshTyre"]].dropna(
                 subset=["Stint", "Compound", "LapNumber"]
             )
+
             if stints.empty:
-                st.info("Nessun dato di stint disponibile per questa sessione.")
+                st.info("⚠️ No stint data available for this session.")
+                log_info("Empty stints DataFrame", "strategy.render")
                 return
 
             stint_data = (
@@ -29,35 +54,30 @@ def render(session):
                 .reset_index()
             )
 
+            # Get driver order from results if available, fallback to lap count
             try:
                 results_df = get_cached_results(session)
                 results = results_df[results_df["GridPosition"] > 0] if results_df is not None else pd.DataFrame()
                 driver_order = results.sort_values("GridPosition")["Abbreviation"].tolist()
                 missing = [d for d in stint_data["Driver"].unique() if d not in driver_order]
                 driver_order.extend(missing)
-            except Exception:
+                log_info(f"Using grid order: {len(driver_order)} drivers", "strategy.render")
+            except Exception as e:
+                log_error(e, "strategy.render - grid order fallback")
                 driver_order = laps.groupby("Driver")["LapNumber"].max().sort_values(ascending=False).index.tolist()
 
-            compound_colors = {
-                "SOFT": "#FF3333",
-                "MEDIUM": "#FFDD57",
-                "HARD": "#F0F0F0",
-                "INTERMEDIATE": "#39B54A",
-                "WET": "#1E90FF",
-                "UNKNOWN": "#808080",
-            }
-
+            # Build stint visualization
             fig = go.Figure()
-            legend_added = set()
+            legend_added: set[str] = set()
 
             for _, row in stint_data.iterrows():
-                driver = row["Driver"]
-                compound = str(row["Compound"]).upper()
-                is_fresh = row["FreshTyre"]
-                c_color = compound_colors.get(compound, "#808080")
-                leg_name = f"{compound} (FRESH)" if is_fresh else f"{compound} (USED)"
+                driver: str = row["Driver"]
+                compound: str = str(row["Compound"]).upper()
+                is_fresh: bool = row["FreshTyre"]
+                c_color: str = COMPOUND_COLORS.get(compound, "#808080")
+                leg_name: str = f"{compound} (FRESH)" if is_fresh else f"{compound} (USED)"
 
-                show_leg = leg_name not in legend_added
+                show_leg: bool = leg_name not in legend_added
                 if show_leg:
                     legend_added.add(leg_name)
 

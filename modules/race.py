@@ -1,47 +1,96 @@
+from __future__ import annotations
+
 import streamlit as st
 import fastf1
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from typing import Optional, Dict, Any
+
 from utils.plotting import get_driver_color, apply_plotly_style
 from utils.session_store import get_cached_laps
+from utils.logger import log_error, log_info
+from config import COLORS, FONTS
 
-BG_CARD = "#121212"
-BORDER = "#27272a"
-TEXT_M = "#a1a1aa" 
-TEXT_W = "#ffffff"
+# Use config colors
+BG_CARD = COLORS["bg_card"]
+BORDER = COLORS["border"]
+TEXT_M = COLORS["text_muted"]
+TEXT_W = COLORS["text_white"]
 
-def _format_lap_time(seconds):
-    if pd.isna(seconds) or seconds == 0: return "0:00.000"
+
+def _format_lap_time(seconds: float) -> str:
+    """Format seconds to MM:SS.SSS format."""
+    if pd.isna(seconds) or seconds == 0:
+        return "0:00.000"
     m = int(seconds // 60)
     s = seconds % 60
     return f"{m}:{s:06.3f}"
 
-def get_filtered_laps(laps, selected_drivers, lap_range, stints, exclude_slow, exclude_pits, exclude_sc):
-    filtered_dict = {}
+
+def get_filtered_laps(
+    laps: pd.DataFrame,
+    selected_drivers: list[str],
+    lap_range: tuple[int, int],
+    stints: list[int],
+    exclude_slow: bool,
+    exclude_pits: bool,
+    exclude_sc: bool,
+) -> Dict[str, pd.DataFrame]:
+    """
+    Filter lap data by driver, lap range, stints, and conditions.
+
+    Args:
+        laps: FastF1 laps DataFrame
+        selected_drivers: List of driver abbreviations to include
+        lap_range: Tuple of (start_lap, end_lap)
+        stints: List of stint numbers to include
+        exclude_slow: If True, exclude laps slower than 107% of best
+        exclude_pits: If True, exclude pit lap data
+        exclude_sc: If True, exclude laps under safety car/VSC
+
+    Returns:
+        Dictionary mapping driver name to filtered laps DataFrame
+    """
+    filtered_dict: Dict[str, pd.DataFrame] = {}
+
     for drv in selected_drivers:
-        drv_laps = laps.pick_drivers(drv).copy()
-        drv_laps = drv_laps[(drv_laps['LapNumber'] >= lap_range[0]) & (drv_laps['LapNumber'] <= lap_range[1])]
-        
-        if stints: 
-            drv_laps = drv_laps[drv_laps['Stint'].isin(stints)]
-            
-        if exclude_sc:
-            drv_laps = drv_laps[~drv_laps['TrackStatus'].astype(str).str.contains('4|6', regex=True)]
-            
-        if exclude_pits:
-            drv_laps = drv_laps.pick_wo_box()
-            
-        if exclude_slow:
-            best_lap = drv_laps['LapTime'].min()
-            if pd.notna(best_lap):
-                drv_laps = drv_laps[drv_laps['LapTime'].dt.total_seconds() <= best_lap.total_seconds() * 1.07]
-                
-        drv_laps = drv_laps.dropna(subset=['LapTime'])
-        if not drv_laps.empty:
-            filtered_dict[drv] = drv_laps
-            
+        try:
+            drv_laps = laps.pick_drivers(drv).copy()
+            drv_laps = drv_laps[
+                (drv_laps["LapNumber"] >= lap_range[0])
+                & (drv_laps["LapNumber"] <= lap_range[1])
+            ]
+
+            if stints:
+                drv_laps = drv_laps[drv_laps["Stint"].isin(stints)]
+
+            if exclude_sc:
+                drv_laps = drv_laps[
+                    ~drv_laps["TrackStatus"].astype(str).str.contains("4|6", regex=True)
+                ]
+
+            if exclude_pits:
+                drv_laps = drv_laps.pick_wo_box()
+
+            if exclude_slow:
+                best_lap = drv_laps["LapTime"].min()
+                if pd.notna(best_lap):
+                    drv_laps = drv_laps[
+                        drv_laps["LapTime"].dt.total_seconds()
+                        <= best_lap.total_seconds() * 1.07
+                    ]
+
+            drv_laps = drv_laps.dropna(subset=["LapTime"])
+            if not drv_laps.empty:
+                filtered_dict[drv] = drv_laps
+                log_info(f"Loaded {len(drv_laps)} valid laps for driver {drv}", "get_filtered_laps")
+
+        except Exception as e:
+            log_error(e, f"get_filtered_laps for {drv}")
+            continue
+
     return filtered_dict
 
 def render_structural_race_debrief(filtered_laps_dict):

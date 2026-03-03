@@ -1,0 +1,124 @@
+2026-03-03 13:31:47,864 - INFO - utils.logger - [get_events] Loaded 26 events for 2026
+2026-03-03 13:31:52,790 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:31:55,983 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:31:57,317 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:31:57,731 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:31:57,788 - INFO - fastf1.fastf1.core - Loading data for Bahrain Grand Prix - Qualifying [v3.8.1]
+2026-03-03 13:31:57,789 - INFO - fastf1.fastf1.req - No cached data found for session_info. Loading data...
+2026-03-03 13:31:57,790 - INFO - fastf1.api - Fetching session info data...
+2026-03-03 13:31:58,285 - INFO - fastf1.fastf1.req - Data has been written to cache!
+2026-03-03 13:31:58,290 - INFO - fastf1.fastf1.req - No cached data found for driver_info. Loading data...
+2026-03-03 13:31:58,291 - INFO - fastf1.api - Fetching driver list...
+2026-03-03 13:31:58,688 - INFO - fastf1.fastf1.req - Data has been written to cache!
+2026-03-03 13:31:58,975 - DEBUG - fastf1.ergast - Failed to parse timestamp '' in Ergastresponse.
+2026-03-03 13:31:58,976 - DEBUG - fastf1.ergast - Failed to parse timestamp '' in Ergastresponse.
+2026-03-03 13:31:58,976 - DEBUG - fastf1.ergast - Failed to parse timestamp '' in Ergastresponse.
+2026-03-03 13:31:59,000 - INFO - fastf1.fastf1.req - No cached data found for session_status_data. Loading data...
+2026-03-03 13:31:59,001 - INFO - fastf1.api - Fetching session status data...
+2026-03-03 13:31:59,446 - INFO - fastf1.fastf1.req - Data has been written to cache!
+2026-03-03 13:31:59,449 - INFO - fastf1.fastf1.req - No cached data found for track_status_data. Loading data...
+2026-03-03 13:31:59,449 - INFO - fastf1.api - Fetching track status data...
+2026-03-03 13:31:59,775 - INFO - fastf1.fastf1.req - Data has been written to cache!
+2026-03-03 13:31:59,776 - INFO - fastf1.fastf1.req - No cached data found for _extended_timing_data. Loading data...
+2026-03-03 13:31:59,776 - INFO - fastf1.api - Fetching timing data...
+2026-03-03 13:32:00,288 - INFO - fastf1.api - Parsing timing data...
+2026-03-03 13:32:00,483 - INFO - fastf1.fastf1.req - Data has been written to cache!
+2026-03-03 13:32:00,484 - INFO - fastf1.fastf1.req - No cached data found for timing_app_data. Loading data...
+2026-03-03 13:32:00,484 - INFO - fastf1.api - Fetching timing app data...
+2026-03-03 13:32:00,786 - INFO - fastf1.fastf1.req - Data has been written to cache!
+2026-03-03 13:32:00,786 - INFO - fastf1.fastf1.core - Processing timing data...
+2026-03-03 13:32:01,513 - INFO - fastf1.fastf1.req - No cached data found for car_data. Loading data...
+2026-03-03 13:32:01,513 - INFO - fastf1.api - Fetching car data...
+2026-03-03 13:32:01,906 - INFO - fastf1.api - Parsing car data...
+2026-03-03 13:32:03,846 - WARNING - fastf1.api - Driver  2: Car data is incomplete!
+2026-03-03 13:32:03,859 - WARNING - fastf1.api - Driver  3: Car data is incomplete!
+2026-03-03 13:32:03,897 - WARNING - fastf1.api - Driver  8: Car data is incomplete!
+2026-03-03 13:32:03,935 - WARNING - fastf1.api - Driver  9: Car data is incomplete!
+2026-03-03 13:32:03,948 - WARNING - fastf1.api - Driver 11: Car data is incomplete!
+2026-03-03 13:32:03,959 - WARNING - fastf1.api - Driver 15: Car data is incomplete!
+2026-03-03 13:32:03,968 - WARNING - fastf1.api - Driver 17: Car data is incomplete!
+2026-03-03 13:32:03,977 - WARNING - fastf1.api - Driver 19: Car data is incomplete!
+2026-03-03 13:32:03,985 - WARNING - fastf1.api - Driver 20: Car data is incomplete!
+2026-03-03 13:32:03,994 - WARNING - fastf1.api - Driver 21: Car data is incomplete!
+2026-03-03 13:32:04,006 - WARNING - fastf1.api - Driver 24: Car data is incomplete!
+2026-03-03 13:32:04,013 - WARNING - fastf1.api - Driver 25: Car data is incomplete!
+2026-03-03 13:32:04,021 - WARNING - fastf1.api - Driver 26: Car data is incomplete!
+2026-03-03 13:32:04,031 - WARNING - fastf1.api - Driver 28: Car data is incomplete!
+2026-03-03 13:32:04,039 - WARNING - fastf1.api - Driver 29: Car data is incomplete!
+2026-03-03 13:32:04,053 - WARNING - fastf1.api - Driver 44: Car data is incomplete!
+2026-03-03 13:32:04,059 - WARNING - fastf1.api - Driver 55: Car data is incomplete!
+2026-03-03 13:32:04,069 - WARNING - fastf1.api - Driver 63: Car data is incomplete!
+2026-03-03 13:32:04,076 - WARNING - fastf1.api - Driver 81: Car data is incomplete!
+2026-03-03 13:32:04,084 - WARNING - fastf1.api - Driver 87: Car data is incomplete!
+2026-03-03 13:32:04,241 - INFO - fastf1.fastf1.req - Data has been written to cache!
+2026-03-03 13:32:04,241 - INFO - fastf1.fastf1.req - No cached data found for position_data. Loading data...
+2026-03-03 13:32:04,241 - INFO - fastf1.api - Fetching position data...
+2026-03-03 13:32:04,695 - INFO - fastf1.api - Parsing position data...
+2026-03-03 13:32:06,616 - WARNING - fastf1.api - Driver  1: Position data is incomplete!
+2026-03-03 13:32:06,623 - WARNING - fastf1.api - Driver  2: Position data is incomplete!
+2026-03-03 13:32:06,631 - WARNING - fastf1.api - Driver  3: Position data is incomplete!
+2026-03-03 13:32:06,641 - WARNING - fastf1.api - Driver  4: Position data is incomplete!
+2026-03-03 13:32:06,650 - WARNING - fastf1.api - Driver  5: Position data is incomplete!
+2026-03-03 13:32:06,657 - WARNING - fastf1.api - Driver  6: Position data is incomplete!
+2026-03-03 13:32:06,666 - WARNING - fastf1.api - Driver  7: Position data is incomplete!
+2026-03-03 13:32:06,672 - WARNING - fastf1.api - Driver  8: Position data is incomplete!
+2026-03-03 13:32:06,680 - WARNING - fastf1.api - Driver  9: Position data is incomplete!
+2026-03-03 13:32:06,689 - WARNING - fastf1.api - Driver 10: Position data is incomplete!
+2026-03-03 13:32:06,700 - WARNING - fastf1.api - Driver 11: Position data is incomplete!
+2026-03-03 13:32:06,708 - WARNING - fastf1.api - Driver 12: Position data is incomplete!
+2026-03-03 13:32:06,717 - WARNING - fastf1.api - Driver 14: Position data is incomplete!
+2026-03-03 13:32:06,723 - WARNING - fastf1.api - Driver 15: Position data is incomplete!
+2026-03-03 13:32:06,733 - WARNING - fastf1.api - Driver 16: Position data is incomplete!
+2026-03-03 13:32:06,740 - WARNING - fastf1.api - Driver 17: Position data is incomplete!
+2026-03-03 13:32:06,749 - WARNING - fastf1.api - Driver 18: Position data is incomplete!
+2026-03-03 13:32:06,758 - WARNING - fastf1.api - Driver 19: Position data is incomplete!
+2026-03-03 13:32:06,767 - WARNING - fastf1.api - Driver 20: Position data is incomplete!
+2026-03-03 13:32:06,786 - WARNING - fastf1.api - Driver 21: Position data is incomplete!
+2026-03-03 13:32:06,799 - WARNING - fastf1.api - Driver 22: Position data is incomplete!
+2026-03-03 13:32:06,808 - WARNING - fastf1.api - Driver 23: Position data is incomplete!
+2026-03-03 13:32:06,816 - WARNING - fastf1.api - Driver 24: Position data is incomplete!
+2026-03-03 13:32:06,825 - WARNING - fastf1.api - Driver 25: Position data is incomplete!
+2026-03-03 13:32:06,836 - WARNING - fastf1.api - Driver 26: Position data is incomplete!
+2026-03-03 13:32:06,846 - WARNING - fastf1.api - Driver 27: Position data is incomplete!
+2026-03-03 13:32:06,853 - WARNING - fastf1.api - Driver 28: Position data is incomplete!
+2026-03-03 13:32:06,864 - WARNING - fastf1.api - Driver 29: Position data is incomplete!
+2026-03-03 13:32:06,876 - WARNING - fastf1.api - Driver 44: Position data is incomplete!
+2026-03-03 13:32:06,890 - WARNING - fastf1.api - Driver 55: Position data is incomplete!
+2026-03-03 13:32:06,900 - WARNING - fastf1.api - Driver 63: Position data is incomplete!
+2026-03-03 13:32:06,912 - WARNING - fastf1.api - Driver 81: Position data is incomplete!
+2026-03-03 13:32:06,922 - WARNING - fastf1.api - Driver 87: Position data is incomplete!
+2026-03-03 13:32:07,188 - INFO - fastf1.fastf1.req - Data has been written to cache!
+2026-03-03 13:32:08,523 - INFO - fastf1.fastf1.req - No cached data found for weather_data. Loading data...
+2026-03-03 13:32:08,523 - INFO - fastf1.api - Fetching weather data...
+2026-03-03 13:32:08,818 - INFO - fastf1.fastf1.req - Data has been written to cache!
+2026-03-03 13:32:08,820 - INFO - fastf1.fastf1.req - No cached data found for race_control_messages. Loading data...
+2026-03-03 13:32:08,820 - INFO - fastf1.api - Fetching race control messages...
+2026-03-03 13:32:09,126 - INFO - fastf1.fastf1.req - Data has been written to cache!
+2026-03-03 13:32:09,184 - INFO - fastf1.fastf1.core - Finished loading data for 20 drivers: ['81', '63', '16', '12', '10', '4', '1', '55', '44', '22', '7', '6', '14', '31', '23', '27', '30', '5', '18', '87']
+2026-03-03 13:32:09,187 - INFO - utils.logger - [load_f1_session] Session loaded: 2025 Bahrain Grand Prix Qualifying
+2026-03-03 13:32:16,575 - INFO - fastf1.fastf1.req - Using cached data for driver_info
+2026-03-03 13:33:23,000 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:33:26,152 - INFO - utils.logger - [get_filtered_laps] Loaded 4 valid laps for driver PIA
+2026-03-03 13:33:26,178 - INFO - utils.logger - [get_filtered_laps] Loaded 6 valid laps for driver RUS
+2026-03-03 13:33:26,185 - INFO - utils.logger - [get_filtered_laps] Loaded 5 valid laps for driver LEC
+2026-03-03 13:33:43,246 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:33:46,238 - INFO - utils.logger - [get_filtered_laps] Loaded 4 valid laps for driver PIA
+2026-03-03 13:33:46,253 - INFO - utils.logger - [get_filtered_laps] Loaded 6 valid laps for driver RUS
+2026-03-03 13:33:46,269 - INFO - utils.logger - [get_filtered_laps] Loaded 5 valid laps for driver LEC
+2026-03-03 13:33:48,244 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:33:50,881 - INFO - utils.logger - [get_filtered_laps] Loaded 4 valid laps for driver PIA
+2026-03-03 13:33:50,897 - INFO - utils.logger - [get_filtered_laps] Loaded 6 valid laps for driver RUS
+2026-03-03 13:33:50,908 - INFO - utils.logger - [get_filtered_laps] Loaded 5 valid laps for driver LEC
+2026-03-03 13:34:24,582 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:34:27,419 - INFO - utils.logger - [get_filtered_laps] Loaded 4 valid laps for driver PIA
+2026-03-03 13:34:27,431 - INFO - utils.logger - [get_filtered_laps] Loaded 6 valid laps for driver RUS
+2026-03-03 13:34:27,440 - INFO - utils.logger - [get_filtered_laps] Loaded 5 valid laps for driver LEC
+2026-03-03 13:34:31,115 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:34:33,390 - INFO - utils.logger - [get_filtered_laps] Loaded 4 valid laps for driver PIA
+2026-03-03 13:34:33,397 - INFO - utils.logger - [get_filtered_laps] Loaded 6 valid laps for driver RUS
+2026-03-03 13:34:33,403 - INFO - utils.logger - [get_filtered_laps] Loaded 5 valid laps for driver LEC
+2026-03-03 13:34:48,718 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:34:51,313 - INFO - utils.logger - [get_filtered_laps] Loaded 4 valid laps for driver PIA
+2026-03-03 13:34:51,333 - INFO - utils.logger - [get_filtered_laps] Loaded 6 valid laps for driver RUS
+2026-03-03 13:34:51,346 - INFO - utils.logger - [get_filtered_laps] Loaded 5 valid laps for driver LEC
+2026-03-03 13:34:51,836 - INFO - utils.logger - [strategy.render] Using grid order: 20 drivers
