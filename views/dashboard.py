@@ -4,11 +4,10 @@ import streamlit as st
 import fastf1
 import pandas as pd
 from typing import Optional
-from modules import telemetry, strategy, race
+from modules import telemetry, strategy, race, lap_comparison
 from utils.session_store import ensure_state, get_f1_data, store_loaded_session
 from utils.logger import log_error, log_info, log_warning, validate_inputs
 from utils.persistence import save_session_to_url, restore_session_from_url
-from utils.theme import toggle_theme
 from config import SESSION_CONFIG, ERROR_MESSAGES, F1_YEAR_RANGE
 
 
@@ -186,29 +185,23 @@ def render() -> None:
             st.session_state["current_route"] = "landing"
             st.rerun()
 
-        st.markdown("---")
-
-        # Theme toggle
-        theme = st.session_state.get("theme", "dark")
-        theme_icon = "☀️" if theme == "dark" else "🌙"
-        theme_label = "Light Mode" if theme == "dark" else "Dark Mode"
-
-        if st.button(f"{theme_icon} {theme_label}", use_container_width=True, help=f"Switch to {theme_label}"):
-            toggle_theme()
-
     # --- MAIN CONTENT ---
     if st.session_state.get("data_loaded"):
         session = st.session_state["f1_session"]
         drivers = st.session_state.get("selected_drivers", [])
 
-        tab_tel, tab_race, tab_strat = st.tabs([
+        tab_tel, tab_comparison, tab_race, tab_strat = st.tabs([
             "TELEMETRY ANALYSIS",
+            "LAP COMPARISON",
             "RACE HISTORY",
             "STRATEGY & TYRES",
         ])
 
         with tab_tel:
             telemetry.render(session, drivers)
+
+        with tab_comparison:
+            lap_comparison.render(session)
 
         with tab_race:
             race.render(session)
