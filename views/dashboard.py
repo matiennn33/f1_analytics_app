@@ -7,6 +7,8 @@ from typing import Optional
 from modules import telemetry, strategy, race
 from utils.session_store import ensure_state, get_f1_data, store_loaded_session
 from utils.logger import log_error, log_info, log_warning, validate_inputs
+from utils.persistence import save_session_to_url, restore_session_from_url
+from utils.theme import toggle_theme
 from config import SESSION_CONFIG, ERROR_MESSAGES, F1_YEAR_RANGE
 
 
@@ -75,8 +77,22 @@ def load_f1_session(year: int, event_name: str, session_type: str) -> bool:
 
 
 def render() -> None:
-    """Render the dashboard view."""
+    """Render the dashboard view with URL-based session persistence."""
     ensure_state()
+
+    # Restore session from URL if available
+    url_session = restore_session_from_url()
+    if url_session:
+        restored_year = url_session.get("year", 2024)
+        restored_event = url_session.get("event_name", "")
+        restored_session = url_session.get("session_type", "")
+        restored_drivers = url_session.get("drivers", [])
+        log_info(f"Restored from URL: {restored_year} {restored_event} {restored_session}", "dashboard.render")
+    else:
+        restored_year = None
+        restored_event = None
+        restored_session = None
+        restored_drivers = []
 
     with st.sidebar:
         logo_col1, logo_col2, logo_col3 = st.columns([1, 5, 1])
@@ -85,34 +101,77 @@ def render() -> None:
 
         st.markdown("---")
 
-        year = st.selectbox("Year", F1_YEAR_RANGE, key="main_sb_year")
+        # Use restored values if available, otherwise 2024
+        default_year = restored_year if restored_year else 2024
+        year = st.selectbox(
+            "Year",
+            F1_YEAR_RANGE,
+            index=list(F1_YEAR_RANGE).index(default_year) if default_year in F1_YEAR_RANGE else 0,
+            key="main_sb_year",
+        )
 
-        event_name = st.selectbox("Grand Prix", get_events(year), key="main_sb_event")
+        events = get_events(year)
+        default_event_idx = 0
+        if restored_event and restored_event in events:
+            default_event_idx = events.index(restored_event)
+
+        event_name = st.selectbox("Grand Prix", events, index=default_event_idx, key="main_sb_event")
 
         sessions_list = get_event_sessions(year, event_name)
-        session_type = st.selectbox("Session", sessions_list, key="main_sb_session")
+        default_session_idx = 0
+        if restored_session and restored_session in sessions_list:
+            default_session_idx = sessions_list.index(restored_session)
+
+        session_type = st.selectbox("Session", sessions_list, index=default_session_idx, key="main_sb_session")
 
         if st.button("LOAD SESSION", key="main_btn_load", use_container_width=True):
             with st.spinner("🔄 LOADING DATA..."):
-                load_f1_session(year, event_name, session_type)
+                if load_f1_session(year, event_name, session_type):
+                    # Save to URL after successful load
+                    save_session_to_url(year, event_name, session_type)
 
         st.markdown("---")
 
         if st.session_state.get("data_loaded"):
             f1_data = get_f1_data()
             drivers_list = f1_data.get("drivers_list", [])
+
+            # Determine default drivers
+            if restored_drivers and all(d in drivers_list for d in restored_drivers):
+                default_drivers = restored_drivers
+            else:
+                default_drivers = drivers_list[: SESSION_CONFIG["default_drivers_to_show"]] if len(drivers_list) > 1 else drivers_list
+
             selected_drivers = st.multiselect(
                 "Select Drivers",
                 drivers_list,
-                default=drivers_list[:SESSION_CONFIG["default_drivers_to_show"]] if len(drivers_list) > 1 else drivers_list,
+                default=default_drivers,
                 max_selections=SESSION_CONFIG["max_drivers_comparison"],
                 key="main_sb_drivers",
             )
 
             if validate_inputs(selected_drivers, SESSION_CONFIG["max_drivers_comparison"]):
                 st.session_state["selected_drivers"] = selected_drivers
+                # Save drivers to URL
+                save_session_to_url(year, event_name, session_type, selected_drivers)
             else:
                 st.session_state["selected_drivers"] = []
+
+
+        st.markdown("---")
+
+        # Share Session Link
+        if st.session_state.get("data_loaded") and st.session_state.get("selected_drivers"):
+            with st.expander("🔗 Share Session Link", expanded=False):
+                current_url = st.query_params
+                share_text = f"📊 F1 Telemetry Session: {year} {event_name} {session_type}"
+                st.info(f"Copy this link to share: `{share_text}`")
+
+                if st.button("📋 Copy Current Session URL", use_container_width=True):
+                    st.toast("✅ URL copied to clipboard (share this link with colleagues!)")
+                    log_info(f"Shared session link: {year} {event_name}", "dashboard.render")
+
+        st.markdown("---")
 
         st.markdown(
             """
@@ -126,6 +185,16 @@ def render() -> None:
         if st.button("<- BACK TO HOME"):
             st.session_state["current_route"] = "landing"
             st.rerun()
+
+        st.markdown("---")
+
+        # Theme toggle
+        theme = st.session_state.get("theme", "dark")
+        theme_icon = "☀️" if theme == "dark" else "🌙"
+        theme_label = "Light Mode" if theme == "dark" else "Dark Mode"
+
+        if st.button(f"{theme_icon} {theme_label}", use_container_width=True, help=f"Switch to {theme_label}"):
+            toggle_theme()
 
     # --- MAIN CONTENT ---
     if st.session_state.get("data_loaded"):

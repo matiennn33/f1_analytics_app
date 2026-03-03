@@ -122,3 +122,5 @@
 2026-03-03 13:34:51,333 - INFO - utils.logger - [get_filtered_laps] Loaded 6 valid laps for driver RUS
 2026-03-03 13:34:51,346 - INFO - utils.logger - [get_filtered_laps] Loaded 5 valid laps for driver LEC
 2026-03-03 13:34:51,836 - INFO - utils.logger - [strategy.render] Using grid order: 20 drivers
+2026-03-03 13:36:06,514 - INFO - utils.logger - [get_events] Loaded 25 events for 2025
+2026-03-03 13:40:15,187 - INFO - utils.logger - [init_theme] Initialized theme: dark

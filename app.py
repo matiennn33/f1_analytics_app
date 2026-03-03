@@ -5,6 +5,8 @@ import socket
 import os
 import fastf1
 from utils.styles import inject_global_css
+from utils.mobile import get_mobile_responsive_css
+from utils.theme import init_theme, get_theme_css
 from views import landing, dashboard, architecture, help as help_page
 
 socket.setdefaulttimeout(30)
@@ -21,7 +23,16 @@ st.set_page_config(
 if "current_route" not in st.session_state:
     st.session_state["current_route"] = "landing"
 
+# Initialize theme system
+init_theme()
+
 inject_global_css()
+
+# Inject mobile-responsive CSS
+st.markdown(get_mobile_responsive_css(), unsafe_allow_html=True)
+
+# Inject theme-based CSS
+st.markdown(get_theme_css(), unsafe_allow_html=True)
 
 # Nascondi la sidebar se non siamo nella dashboard
 if st.session_state["current_route"] != "dashboard":
