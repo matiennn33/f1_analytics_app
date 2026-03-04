@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from utils.plotting import get_driver_color, apply_plotly_style
 from utils.formatting import fmt_time
 from utils.session_store import get_cached_laps
+from utils.components import plot_chart
 
 
 def render(session, drivers):
@@ -58,7 +59,7 @@ def render(session, drivers):
 
         apply_plotly_style(fig_gap, "Average Race Pace Gap (vs Best Lap)")
         fig_gap.update_layout(yaxis=dict(autorange="reversed"))
-        st.plotly_chart(fig_gap, width="stretch")
+        plot_chart(fig_gap, "lap_pace_gap")
 
     # --- 2. Ideal Lap ---
     ideal_data = []
@@ -115,6 +116,6 @@ def render(session, drivers):
         apply_plotly_style(fig_ideal, "Theoretical Best vs Actual Fastest Lap")
         min_y = df_ideal["Time"].min() * 0.99
         fig_ideal.update_yaxes(range=[min_y, df_ideal["Time"].max() * 1.005])
-        st.plotly_chart(fig_ideal, width="stretch")
+        plot_chart(fig_ideal, "lap_ideal_vs_actual")
 
     return True

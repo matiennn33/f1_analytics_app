@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from utils.plotting import get_driver_color, get_team_color, apply_plotly_style
 from utils.session_store import get_cached_laps
+from utils.components import plot_chart
 
 
 def render(session, drivers):
@@ -48,7 +49,7 @@ def render(session, drivers):
         min_y = df_spd["Speed"].min() - 10
         fig_spd.update_yaxes(range=[min_y, df_spd["Speed"].max() + 5], title="Speed (km/h)")
 
-        st.plotly_chart(fig_spd, width="stretch")
+        plot_chart(fig_spd, "sector_speeds")
 
     # --- 2. Sectors ---
     st.markdown("<br>", unsafe_allow_html=True)
@@ -110,6 +111,6 @@ def render(session, drivers):
 
         apply_plotly_style(fig_sec, f"{sec_mode.upper()}")
         fig_sec.update_layout(showlegend=False)
-        st.plotly_chart(fig_sec, width="stretch")
+        plot_chart(fig_sec, "sector_times")
 
     return True

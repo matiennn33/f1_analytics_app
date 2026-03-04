@@ -12,6 +12,29 @@ def ensure_state():
         st.session_state["telemetry_base_cache"] = {}
     if "telemetry_derived_cache" not in st.session_state:
         st.session_state["telemetry_derived_cache"] = {}
+    if "favorite_drivers" not in st.session_state:
+        st.session_state["favorite_drivers"] = set()
+
+
+# ── Favorite Drivers helpers ──────────────────────────────────────────────────
+
+def get_favorite_drivers() -> set:
+    ensure_state()
+    return st.session_state.get("favorite_drivers", set())
+
+
+def toggle_favorite_driver(driver_code: str):
+    ensure_state()
+    favs = st.session_state["favorite_drivers"]
+    if driver_code in favs:
+        favs.discard(driver_code)
+    else:
+        favs.add(driver_code)
+    st.session_state["favorite_drivers"] = favs
+
+
+def is_favorite_driver(driver_code: str) -> bool:
+    return driver_code in get_favorite_drivers()
 
 
 def store_loaded_session(session, year, event_name, session_type):

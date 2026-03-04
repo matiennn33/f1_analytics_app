@@ -4,19 +4,26 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from utils.plotting import get_driver_color, apply_plotly_style, get_team_color
+from utils.plotting import get_driver_color, apply_plotly_style, get_team_color, get_comparison_colors
 from utils.formatting import fmt_time
+from utils.components import plot_chart
 import warnings
 import base64
 import os
 from utils.session_store import get_cached_laps
+from modules import advanced_analytics as _adv_analytics
 
 warnings.filterwarnings("ignore")
 
-BG_CARD = "#121212"
-BORDER = "#27272a"
+BG_CARD = "#060608"
+BORDER = "rgba(255,255,255,0.07)"
 TEXT_M = "#a1a1aa" 
 TEXT_W = "#ffffff" 
+
+def _hex_to_rgb(hex_color: str) -> str:
+    h = hex_color.lstrip("#")
+    r, g, b = int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+    return f"{r},{g},{b}"
 
 def get_team_logo_b64(team_name, default_icon):
     team_mapping = {
@@ -41,10 +48,10 @@ def _bar(label, val, bar_color):
 <div style="margin-bottom: 8px;">
     <div style="display:flex; justify-content:space-between; font-size:0.7rem; margin-bottom:4px; font-family:'Geist Mono', monospace;">
         <span style="color:{TEXT_M}; text-transform:uppercase; font-weight:500;"><i class="fa-solid {icon}" style="margin-right:6px;"></i> {label}</span>
-        <span style="color:{TEXT_W}; font-weight:700;">{val:.1f}%</span>
+        <span style="color:{TEXT_W}; font-weight:500;">{val:.1f}%</span>
     </div>
-    <div style="height:5px; background:#27272a; border-radius:3px; overflow:hidden;">
-        <div style="height:100%; width:{val}%; background: linear-gradient(90deg, transparent 0%, {bar_color} 100%); box-shadow: 0 0 8px {bar_color}66; border-radius: 3px;"></div>
+    <div style="height:3px; background:transparent; border-radius:3px; overflow:hidden;">
+        <div style="height:100%; width:{val}%; background: linear-gradient(90deg, transparent 0%, {bar_color}55 18%, {bar_color} 100%); box-shadow: 0 0 6px {bar_color}55; border-radius: 3px;"></div>
     </div>
 </div>"""
 
@@ -155,7 +162,8 @@ def get_y_title(ch, br_mode):
         'Delta': 'DELTA (S)',
         'G_Long': 'LONGITUDINAL G',
         'G_Lat': 'LATERAL G',
-        'ERS_Energy_2026': 'ENERGY (%)'
+        'ERS_Energy_2026': 'ENERGY (%)',
+        'Accel_ms2': 'ACCELERATION (M/S²)',
     }
     return titles.get(ch, ch.upper())
 
@@ -277,10 +285,15 @@ def add_ers_2026_channels(tel, base_kw=350, team_name=""):
 def render_standard_card(d, best_s, best_lap, session):
     team_c = get_team_color(d['Team'], session)
     logo_html = get_team_logo_b64(d['Team'], "fa-user-astronaut")
-    s_styles = ["color: #21C55E; text-shadow: 0 0 12px rgba(33, 197, 94, 0.6);" if d[f'S{i}'] == best_s[i-1] else "color: #ffffff;" for i in range(1, 4)]
-    
+    # Von Restorff: best sectors get isolation class (stands out from plain white)
+    s_classes = ["best-cell" if d[f'S{i}'] == best_s[i-1] else "" for i in range(1, 4)]
+
     gap = d['ActualLap'] - best_lap
-    gap_str, gap_style = ("FASTEST", "color: #c084fc; text-shadow: 0 0 15px rgba(192, 132, 252, 0.7);") if gap <= 0.001 else (f"+{gap:.3f}s", "color: #ffffff;")
+    is_fastest = gap <= 0.001
+    gap_str = "FASTEST" if is_fastest else f"+{gap:.3f}s"
+    gap_style = "color: #c084fc; text-shadow: 0 0 15px rgba(192, 132, 252, 0.7);" if is_fastest else "color: #ffffff;"
+    # Von Restorff: fastest driver card gets green top-bar + subtle glow
+    card_extra_class = "vr-highlight" if is_fastest else ""
     
     compound = str(d.get('Compound', 'UNKNOWN')).upper()
     tyre_life = d.get('TyreLife', 1)
@@ -290,37 +303,39 @@ def render_standard_card(d, best_s, best_lap, session):
     c_map = {"SOFT": "#FF3333", "MEDIUM": "#FFDD57", "HARD": "#F0F0F0", "INTERMEDIATE": "#39B54A", "WET": "#1E90FF"}
     tyre_color = c_map.get(compound, "#808080")
 
-    return f"""<div class="f1-card" style="background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 12px; padding: 20px; font-family: 'Space Grotesk', sans-serif;">
-    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 15px;">
+    return f"""<div class="driver-card {card_extra_class}" style="--team-color: {_hex_to_rgb(team_c)}; font-family: 'Space Grotesk', sans-serif; border-color: rgba({_hex_to_rgb(team_c)}, 0.3);">
+    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; margin-bottom: 15px;">
         <div style="display: flex; align-items: center;">
             <div style="width: 4px; height: 24px; background-color: {team_c}; border-radius: 2px; margin-right: 12px;"></div>
             {logo_html}
             <div style="font-size: 1.15rem; font-weight: 600; color: {team_c};">{d['Driver']} <span style="font-size: 0.7rem; color: {TEXT_M}; font-family: 'Geist Mono', monospace;">{d['Team'].upper()}</span></div>
         </div>
         <div style="display: flex; align-items: center;">
-            <div style="display: flex; align-items: center; background: #1a1a1c; padding: 4px 8px; border-radius: 6px; border: 1px solid {BORDER};">
-                <div style="width: 10px; height: 10px; border-radius: 50%; background-color: {tyre_color}; margin-right: 6px;"></div>
+            <div style="display: flex; align-items: center; padding: 4px 8px;">
+                <div style="width: 10px; height: 10px; border-radius: 50%; background-color: {tyre_color}; margin-right: 6px; box-shadow: 0 0 6px {tyre_color}88;"></div>
                 <span style="color: {TEXT_W}; font-size: 0.65rem; font-family: 'Geist Mono', monospace; font-weight: 700;">{compound[0] if compound != 'UNKNOWN' else 'U'} <span style="color: {TEXT_M};">{life_str}</span></span>
             </div>
         </div>
     </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; background: #0a0a0a; padding: 12px; border-radius: 8px; border: 1px solid {BORDER}; margin-bottom: 15px;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; background: transparent; padding: 12px 0; border-top: 1px solid rgba(255,255,255,0.08); border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 15px;">
         <div style="text-align: center;"><div style="color: {TEXT_M}; font-family: 'Geist Mono', monospace; font-size: 0.6rem;">ACTUAL</div><div style="font-size: 1.1rem; font-weight: 700; color: {TEXT_W}; font-family: 'Geist Mono', monospace;">{fmt_time(d['ActualLap'])}</div></div>
-        <div style="text-align: center; border-left: 1px solid {BORDER}; border-right: 1px solid {BORDER};"><div style="color: {TEXT_M}; font-family: 'Geist Mono', monospace; font-size: 0.6rem;">GAP</div><div style="font-size: 1.1rem; font-weight: 700; {gap_style} font-family: 'Geist Mono', monospace;">{gap_str}</div></div>
+        <div style="text-align: center; border-left: 1px solid rgba(255,255,255,0.08); border-right: 1px solid rgba(255,255,255,0.08);"><div style="color: {TEXT_M}; font-family: 'Geist Mono', monospace; font-size: 0.6rem;">GAP</div><div style="font-size: 1.1rem; font-weight: 700; {gap_style} font-family: 'Geist Mono', monospace;">{gap_str}</div></div>
         <div style="text-align: center;"><div style="color: {TEXT_M}; font-family: 'Geist Mono', monospace; font-size: 0.6rem;">IDEAL</div><div style="font-size: 1.1rem; font-weight: 700; color: #21C55E; font-family: 'Geist Mono', monospace;">{fmt_time(d['IdealLap'])}</div></div>
     </div>
     <div style="display: flex; justify-content: space-between; gap: 6px; margin-bottom: 15px;">
-        <div style="flex:1; text-align:center; background:#1a1a1c; padding:6px; border-radius:4px; border: 1px solid {BORDER};"><div style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">S1</div><div style="font-size:0.85rem; font-weight:700; {s_styles[0]} font-family:'Geist Mono', monospace;">{d['S1']:.3f}</div></div>
-        <div style="flex:1; text-align:center; background:#1a1a1c; padding:6px; border-radius:4px; border: 1px solid {BORDER};"><div style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">S2</div><div style="font-size:0.85rem; font-weight:700; {s_styles[1]} font-family:'Geist Mono', monospace;">{d['S2']:.3f}</div></div>
-        <div style="flex:1; text-align:center; background:#1a1a1c; padding:6px; border-radius:4px; border: 1px solid {BORDER};"><div style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">S3</div><div style="font-size:0.85rem; font-weight:700; {s_styles[2]} font-family:'Geist Mono', monospace;">{d['S3']:.3f}</div></div>
+        <div style="flex:1; text-align:center; padding:6px 0;"><div style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">S1</div><div class="{s_classes[0]}" style="font-size:0.9rem; font-weight:700; font-family:'Geist Mono', monospace;">{d['S1']:.3f}</div></div>
+        <div style="flex:1; text-align:center; padding:6px 0; border-left: 1px solid rgba(255,255,255,0.08); border-right: 1px solid rgba(255,255,255,0.08);"><div style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">S2</div><div class="{s_classes[1]}" style="font-size:0.9rem; font-weight:700; font-family:'Geist Mono', monospace;">{d['S2']:.3f}</div></div>
+        <div style="flex:1; text-align:center; padding:6px 0;"><div style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">S3</div><div class="{s_classes[2]}" style="font-size:0.9rem; font-weight:700; font-family:'Geist Mono', monospace;">{d['S3']:.3f}</div></div>
     </div>
-    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding: 0 5px;">
+    <div style="display: flex; justify-content: space-between; margin-bottom: 0; padding: 12px 2px; border-bottom: 1px solid rgba(255,255,255,0.08);">
         <div><div style="color:{TEXT_M}; font-size:0.6rem; font-family:'Geist Mono', monospace;">TOP SPEED</div><div style="font-size:1.3rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d['TopSpeed']:.0f}<span style="font-size:0.7rem; color:{TEXT_M};"> KM/H</span></div></div>
         <div style="text-align:right;"><div style="color:{TEXT_M}; font-size:0.6rem; font-family:'Geist Mono', monospace;">AVG SPEED</div><div style="font-size:1.3rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d['AvgSpeed']:.0f}<span style="font-size:0.7rem; color:{TEXT_M};"> KM/H</span></div></div>
     </div>
-    {_bar("Full Throttle", d.get('ThrottleEff',0), "#10b981")}
-    {_bar("Braking", d.get('TimeOnBrakes',0), "#ef4444")}
-    {_bar("Cornering", d.get('CorneringPct',0), "#3b82f6")}
+    <div style="padding-top: 12px;">
+    {_bar("Full Throttle", d.get('ThrottleEff',0), team_c)}
+    {_bar("Braking", d.get('TimeOnBrakes',0), team_c)}
+    {_bar("Cornering", d.get('CorneringPct',0), team_c)}
+    </div>
 </div>"""
 
 def render_advanced_card(d, b_adv, session):
@@ -328,30 +343,32 @@ def render_advanced_card(d, b_adv, session):
     logo_html = get_team_logo_b64(d['Team'], "fa-microchip")
     def g_style(k, v): return "color: #21C55E; text-shadow: 0 0 10px rgba(33,197,94,0.5);" if v >= b_adv.get(k, 0) and v > 0 else "color: #ffffff;"
 
-    return f"""<div class="f1-card" style="background-color: {BG_CARD}; border: 1px solid {BORDER}; border-radius: 12px; padding: 20px; font-family: 'Space Grotesk', sans-serif;">
-    <div style="display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 12px; margin-bottom: 15px;">
+    return f"""<div class="driver-card" style="--team-color: {_hex_to_rgb(team_c)}; font-family: 'Space Grotesk', sans-serif; border-color: rgba({_hex_to_rgb(team_c)}, 0.3);">
+    <div style="display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px; margin-bottom: 15px;">
         <div style="width: 4px; height: 24px; background-color: {team_c}; border-radius: 2px; margin-right: 12px;"></div>
         {logo_html}
-        <div style="font-size: 1.1rem; font-weight: 600; color: {team_c};">{d['Driver']} <span style="font-size: 0.7rem; color: {TEXT_M}; font-family: 'Geist Mono', monospace; font-weight: 500;">DYNAMICS</span></div>
+        <div style="font-size: 1.1rem; font-weight: 600; color: {team_c}; font-family: 'Space Grotesk', sans-serif;">{d['Driver']} <span style="font-size: 0.7rem; color: {TEXT_M}; font-family: 'Geist Mono', monospace; font-weight: 500;">DYNAMICS</span></div>
     </div>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
-        <div style="background: #0a0a0a; padding: 12px; border-radius: 8px; border: 1px solid {BORDER}; text-align: center;"><div style="color: {TEXT_M}; font-size: 0.55rem; font-family: 'Geist Mono', monospace;">POWER DELIVERY</div><div style="font-size: 1.6rem; font-weight: 700; color: {TEXT_W}; font-family: 'Geist Mono', monospace;">{d.get('PDScore', 0):.0f}<span style="font-size: 0.7rem; color: {TEXT_M};">/100</span></div></div>
-        <div style="background: #0a0a0a; padding: 12px; border-radius: 8px; border: 1px solid {BORDER}; text-align: center;"><div style="color: {TEXT_M}; font-size: 0.55rem; font-family: 'Geist Mono', monospace;">DRS USAGE</div><div style="font-size: 1.6rem; font-weight: 700; {g_style('DRSPct', d.get('DRSPct',0))} font-family: 'Geist Mono', monospace;">{d.get('DRSPct', 0):.1f}<span style="font-size: 0.7rem; color: {TEXT_M};">%</span></div></div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px; margin-bottom: 14px;">
+        <div style="text-align: center; padding: 8px 0; border-right: 1px solid rgba(255,255,255,0.08);"><div style="color: {TEXT_M}; font-size: 0.55rem; font-family: 'Geist Mono', monospace; letter-spacing: 1px; margin-bottom: 4px;">POWER DELIVERY</div><div style="font-size: 1.5rem; font-weight: 700; color: {TEXT_W}; font-family: 'Geist Mono', monospace;">{d.get('PDScore', 0):.0f}<span style="font-size: 0.7rem; color: {TEXT_M};">/100</span></div></div>
+        <div style="text-align: center; padding: 8px 0;"><div style="color: {TEXT_M}; font-size: 0.55rem; font-family: 'Geist Mono', monospace; letter-spacing: 1px; margin-bottom: 4px;">DRS USAGE</div><div style="font-size: 1.5rem; font-weight: 700; {g_style('DRSPct', d.get('DRSPct',0))} font-family: 'Geist Mono', monospace;">{d.get('DRSPct', 0):.1f}<span style="font-size: 0.7rem; color: {TEXT_M};">%</span></div></div>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px;">
-        <div style="text-align: center; background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER};"><div style="color:{TEXT_M}; font-size:0.5rem; font-family:'Geist Mono', monospace;">LOW AVG</div><div style="font-size:0.85rem; font-weight:700; {g_style('LS', d.get('LS',0))} font-family:'Geist Mono', monospace;">{d.get('LS',0):.0f}</div></div>
-        <div style="text-align: center; background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER};"><div style="color:{TEXT_M}; font-size:0.5rem; font-family:'Geist Mono', monospace;">MED AVG</div><div style="font-size:0.85rem; font-weight:700; {g_style('MS', d.get('MS',0))} font-family:'Geist Mono', monospace;">{d.get('MS',0):.0f}</div></div>
-        <div style="text-align: center; background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER};"><div style="color:{TEXT_M}; font-size:0.5rem; font-weight:500; font-family:'Geist Mono', monospace;">HIGH AVG</div><div style="font-size:0.85rem; font-weight:700; {g_style('HS', d.get('HS',0))} font-family:'Geist Mono', monospace;">{d.get('HS',0):.0f}</div></div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px; margin-bottom: 14px;">
+        <div style="text-align: center; padding: 6px 0;"><div style="color:{TEXT_M}; font-size:0.5rem; font-family:'Geist Mono', monospace; letter-spacing:1px; margin-bottom:3px;">LOW AVG</div><div style="font-size:0.85rem; font-weight:700; {g_style('LS', d.get('LS',0))} font-family:'Geist Mono', monospace;">{d.get('LS',0):.0f}</div></div>
+        <div style="text-align: center; padding: 6px 0; border-left: 1px solid rgba(255,255,255,0.08); border-right: 1px solid rgba(255,255,255,0.08);"><div style="color:{TEXT_M}; font-size:0.5rem; font-family:'Geist Mono', monospace; letter-spacing:1px; margin-bottom:3px;">MED AVG</div><div style="font-size:0.85rem; font-weight:700; {g_style('MS', d.get('MS',0))} font-family:'Geist Mono', monospace;">{d.get('MS',0):.0f}</div></div>
+        <div style="text-align: center; padding: 6px 0;"><div style="color:{TEXT_M}; font-size:0.5rem; font-family:'Geist Mono', monospace; letter-spacing:1px; margin-bottom:3px;">HIGH AVG</div><div style="font-size:0.85rem; font-weight:700; {g_style('HS', d.get('HS',0))} font-family:'Geist Mono', monospace;">{d.get('HS',0):.0f}</div></div>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 10px;">
-        <div style="background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER}; display: flex; justify-content: space-between; align-items: center;"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">GEAR SHIFTS</span><span style="font-size:0.85rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('GearShifts',0):.0f}</span></div>
-        <div style="background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER}; display: flex; justify-content: space-between; align-items: center;"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">MAX LATERAL G</span><span style="font-size:0.85rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('MaxGLat',0):.2f} G</span></div>
-        <div style="background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER}; display: flex; justify-content: space-between; align-items: center;"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">MAX DECEL G</span><span style="font-size:0.85rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('MaxGDec',0):.2f} G</span></div>
-        <div style="background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER}; display: flex; justify-content: space-between; align-items: center;"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">TIME ON BRAKES</span><span style="font-size:0.85rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('TimeOnBrakes',0):.1f}%</span></div>
-        <div style="background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER}; display: flex; justify-content: space-between; align-items: center;"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">ERS CLIPPING</span><span style="font-size:0.85rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('ClippingPct',0):.1f}%</span></div>
-        <div style="background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER}; display: flex; justify-content: space-between; align-items: center;"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">VMAX TIME</span><span style="font-size:0.85rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('VmaxTime',0):.1f}%</span></div>
-        <div style="background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER}; display: flex; justify-content: space-between; align-items: center;"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">REV LIMITER</span><span style="font-size:0.85rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('RevLimiter',0):.1f}%</span></div>
-        <div style="background: #1a1a1c; padding: 10px; border-radius: 6px; border: 1px solid {BORDER}; display: flex; justify-content: space-between; align-items: center;"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace;">PEDAL RATE (TRAIL)</span><span style="font-size:0.85rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('TrailBraking',0):.0f} /s</span></div>
+    <div style="border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 14px; margin-bottom: 14px;">
+        <div style="display: flex; justify-content: space-between; padding: 5px 2px;"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace; letter-spacing:1px;">GEAR SHIFTS</span><span style="font-size:0.82rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('GearShifts',0):.0f}</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 5px 2px; border-top: 1px solid rgba(255,255,255,0.05);"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace; letter-spacing:1px;">MAX LATERAL G</span><span style="font-size:0.82rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('MaxGLat',0):.2f} G</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 5px 2px; border-top: 1px solid rgba(255,255,255,0.05);"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace; letter-spacing:1px;">MAX DECEL G</span><span style="font-size:0.82rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('MaxGDec',0):.2f} G</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 5px 2px; border-top: 1px solid rgba(255,255,255,0.05);"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace; letter-spacing:1px;">TIME ON BRAKES</span><span style="font-size:0.82rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('TimeOnBrakes',0):.1f}%</span></div>
+    </div>
+    <div>
+        <div style="display: flex; justify-content: space-between; padding: 5px 2px;"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace; letter-spacing:1px;">ERS CLIPPING</span><span style="font-size:0.82rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('ClippingPct',0):.1f}%</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 5px 2px; border-top: 1px solid rgba(255,255,255,0.05);"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace; letter-spacing:1px;">VMAX TIME</span><span style="font-size:0.82rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('VmaxTime',0):.1f}%</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 5px 2px; border-top: 1px solid rgba(255,255,255,0.05);"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace; letter-spacing:1px;">REV LIMITER</span><span style="font-size:0.82rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('RevLimiter',0):.1f}%</span></div>
+        <div style="display: flex; justify-content: space-between; padding: 5px 2px; border-top: 1px solid rgba(255,255,255,0.05);"><span style="color:{TEXT_M}; font-size:0.55rem; font-family:'Geist Mono', monospace; letter-spacing:1px;">PEDAL RATE (TRAIL)</span><span style="font-size:0.82rem; font-weight:700; color:{TEXT_W}; font-family:'Geist Mono', monospace;">{d.get('TrailBraking',0):.0f} /s</span></div>
     </div>
 </div>"""
 
@@ -575,19 +592,19 @@ def render_structural_coach(metrics_data, use_expander=False):
             <p style="color: #d4d4d8; font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; line-height: 1.5; margin: 0;">{overview_html}</p>
         </div>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-            <div style="background: #0a0a0a; border: 1px solid #1a1a1c; padding: 20px; border-radius: 8px;">
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); padding: 20px; border-radius: 8px;">
                 <h4 style="color: #ffffff; font-family: 'Geist Mono', monospace; font-size: 0.95rem; margin-top: 0; margin-bottom: 12px;"><i class="fa-solid fa-wind" style="color: #71717a; margin-right: 8px;"></i> AERO DRAG & TOP SPEED</h4>
                 <p style="color: #d4d4d8; font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; line-height: 1.6; margin: 0;">{aero_text}</p>
             </div>
-            <div style="background: #0a0a0a; border: 1px solid #1a1a1c; padding: 20px; border-radius: 8px;">
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); padding: 20px; border-radius: 8px;">
                 <h4 style="color: #ffffff; font-family: 'Geist Mono', monospace; font-size: 0.95rem; margin-top: 0; margin-bottom: 12px;"><i class="fa-solid fa-arrows-down-to-line" style="color: #71717a; margin-right: 8px;"></i> KINEMATICS & TRAIL-BRAKING</h4>
                 <p style="color: #d4d4d8; font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; line-height: 1.6; margin: 0;">{brake_text}</p>
             </div>
-            <div style="background: #0a0a0a; border: 1px solid #1a1a1c; padding: 20px; border-radius: 8px;">
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); padding: 20px; border-radius: 8px;">
                 <h4 style="color: #ffffff; font-family: 'Geist Mono', monospace; font-size: 0.95rem; margin-top: 0; margin-bottom: 12px;"><i class="fa-solid fa-bolt" style="color: #71717a; margin-right: 8px;"></i> TRACTION & PU DEPLOYMENT</h4>
                 <p style="color: #d4d4d8; font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; line-height: 1.6; margin: 0;">{ers_text}</p>
             </div>
-            <div style="background: #0a0a0a; border: 1px solid #1a1a1c; padding: 20px; border-radius: 8px;">
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); padding: 20px; border-radius: 8px;">
                 <h4 style="color: #ffffff; font-family: 'Geist Mono', monospace; font-size: 0.95rem; margin-top: 0; margin-bottom: 12px;"><i class="fa-solid fa-battery-half" style="color: #71717a; margin-right: 8px;"></i> ENERGY TRACE (ERS 2026)</h4>
                 <p style="color: #d4d4d8; font-family: 'Space Grotesk', sans-serif; font-size: 0.95rem; line-height: 1.6; margin: 0;">{energy_text}</p>
             </div>
@@ -601,14 +618,20 @@ def render_structural_coach(metrics_data, use_expander=False):
 
 
 def render(session, drivers):
-    st.markdown("### <i class='fa-solid fa-chart-line'></i> Performance Insights", unsafe_allow_html=True)
+    st.markdown(
+        "<div style='display:flex; align-items:center; margin-bottom:16px;'>"
+        f"<i class='fa-solid fa-chart-line' style='color:#3b82f6; font-size:1.3rem; margin-right:10px;'></i>"
+        "<h4 style='margin:0; color:#ffffff; font-family:Geist Mono,monospace; font-size:0.95rem;"
+        " text-transform:uppercase; letter-spacing:1px;'>PERFORMANCE INSIGHTS</h4></div>",
+        unsafe_allow_html=True,
+    )
     with st.expander("CONFIGURAZIONE GRAFICI", expanded=False):
         st.markdown("<div style='font-family: Geist Mono; font-size:0.65rem; color:#71717a; margin-top:12px; margin-bottom:12px; letter-spacing: 1px;'>IMPOSTAZIONI TELEMETRIA</div>", unsafe_allow_html=True)
         c_cfg_1, c_cfg_2 = st.columns(2)
         with c_cfg_1:
             chs = st.multiselect(
                 "CHANNELS TO DISPLAY",
-                ['Delta', 'Speed', 'Throttle', 'Brake', 'RPM', 'Gear', 'ERS_Energy_2026'],
+                ['Delta', 'Speed', 'Throttle', 'Brake', 'RPM', 'Gear', 'Accel_ms2', 'ERS_Energy_2026'],
                 default=['Delta', 'Speed', 'Throttle', 'Brake']
             )
             br_mode_toggle = st.toggle("ESTIMATE BRAKE PRESSURE", value=False)
@@ -627,14 +650,14 @@ def render(session, drivers):
 
     if not drivers: return
     
-    st.markdown('<div id="report-area" style="background-color: #0a0a0a; padding: 20px; border-radius: 12px;">', unsafe_allow_html=True)
-    
     metrics_data, laps_cache = [], {}
     circuit_info = None
     try:
         circuit_info = session.get_circuit_info()
     except Exception:
         pass
+
+    _cmp_colors = get_comparison_colors(drivers, session)
 
     session_key = st.session_state.get("f1_session_key", "unknown")
     base_cache_key = f"{session_key}|base"
@@ -665,6 +688,10 @@ def render(session, drivers):
                 adv = calculate_advanced_metrics(tel, glat_smooth_window=glat_smooth)
                 tel = add_ers_2026_channels(tel, base_kw=int(ers_base_kw), team_name=fast['Team'])
                 tel['B_Pressure'] = estimate_brake_pressure(tel)
+                # Longitudinal acceleration in m/s², smoothed
+                _dt_acc = tel['Time'].dt.total_seconds().diff().fillna(0.02).clip(lower=0.001, upper=0.5)
+                _accel_raw = (tel['Speed'].diff().fillna(0) / 3.6) / _dt_acc
+                tel['Accel_ms2'] = _accel_raw.rolling(5, min_periods=1, center=True).mean().clip(-50, 50)
                 energy_series = pd.to_numeric(tel.get('ERS_Energy_2026', pd.Series(np.nan, index=tel.index)), errors='coerce')
                 deploy_series = pd.to_numeric(tel.get('ERS_Deploy_2026', pd.Series(0, index=tel.index)), errors='coerce').fillna(0)
                 rec_series = pd.to_numeric(tel.get('ERS_Recovery_2026', pd.Series(0, index=tel.index)), errors='coerce').fillna(0)
@@ -676,7 +703,7 @@ def render(session, drivers):
                     air, trk = 0, 0
 
                 m_entry = {
-                    'Driver': drv, 'Color': get_driver_color(drv, session), 'Team': fast['Team'],
+                    'Driver': drv, 'Color': _cmp_colors.get(drv, get_driver_color(drv, session)), 'Team': fast['Team'],
                     'ActualLap': fast['LapTime'].total_seconds(),
                     'IdealLap': (laps['Sector1Time'].min() + laps['Sector2Time'].min() + laps['Sector3Time'].min()).total_seconds(),
                     'S1': fast['Sector1Time'].total_seconds(), 'S2': fast['Sector2Time'].total_seconds(), 'S3': fast['Sector3Time'].total_seconds(),
@@ -690,7 +717,7 @@ def render(session, drivers):
                 }
                 m_entry.update(adv)
                 metrics_data.append(m_entry)
-                laps_cache[drv] = {'lap': fast, 'tel': tel, 'color': get_driver_color(drv, session)}
+                laps_cache[drv] = {'lap': fast, 'tel': tel, 'color': _cmp_colors.get(drv, get_driver_color(drv, session))}
             except Exception:
                 pass
 
@@ -704,16 +731,30 @@ def render(session, drivers):
             best_lap = min([d['ActualLap'] for d in metrics_data])
             cols = st.columns(len(metrics_data))
             for i, col in enumerate(cols):
-                with col: st.markdown(render_standard_card(metrics_data[i], best_s, best_lap, session), unsafe_allow_html=True)
+                reveal_cls = f"reveal-card rd-{min(i+1, 6)} pop"
+                with col:
+                    st.markdown(
+                        f"<div class='{reveal_cls}'>"
+                        + render_standard_card(metrics_data[i], best_s, best_lap, session)
+                        + "</div>",
+                        unsafe_allow_html=True,
+                    )
         
         with t_dyn:
             best_adv = {'LS': max([d.get('LS',0) for d in metrics_data]), 'MS': max([d.get('MS',0) for d in metrics_data]), 'HS': max([d.get('HS',0) for d in metrics_data]), 'DRSPct': max([d.get('DRSPct',0) for d in metrics_data]), 'ThrottleEff': max([d.get('ThrottleEff',0) for d in metrics_data])}
             cols_adv = st.columns(len(metrics_data))
             for i, col in enumerate(cols_adv):
-                with col: st.markdown(render_advanced_card(metrics_data[i], best_adv, session), unsafe_allow_html=True)
+                reveal_cls = f"reveal-card rd-{min(i+1, 6)} pop"
+                with col:
+                    st.markdown(
+                        f"<div class='{reveal_cls}'>"
+                        + render_advanced_card(metrics_data[i], best_adv, session)
+                        + "</div>",
+                        unsafe_allow_html=True,
+                    )
 
             st.markdown("""
-            <div style="background-color: #1a1a1c; border-left: 4px solid #3b82f6; border-radius: 8px; padding: 20px; margin: 20px 0 25px 0;">
+            <div style="background-color: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.2); border-left: 4px solid #3b82f6; border-radius: 8px; padding: 20px; margin: 20px 0 25px 0;">
                 <h4 style="color: #ffffff; font-family: 'Geist Mono', monospace; margin-top: 0; margin-bottom: 15px;">
                     <i class="fa-solid fa-graduation-cap" style="color: #3b82f6; margin-right: 10px;"></i> COME LEGGERE IL CERCHIO DELLE ADERENZE (GG DIAGRAM)
                 </h4>
@@ -769,12 +810,55 @@ def render(session, drivers):
             gg_fig.add_annotation(x=5.5, y=5.5, text="RIGHT TURN + ACCEL", showarrow=False, font=dict(color=TEXT_M, size=10, family="Geist Mono"))
             gg_fig.add_annotation(x=-5.5, y=-5.5, text="LEFT TURN + BRAKING", showarrow=False, font=dict(color=TEXT_M, size=10, family="Geist Mono"))
             gg_fig.add_annotation(x=5.5, y=-5.5, text="RIGHT TURN + BRAKING", showarrow=False, font=dict(color=TEXT_M, size=10, family="Geist Mono"))
-            st.plotly_chart(apply_plotly_style(gg_fig, ""), width="stretch")
+            st.markdown(
+                "<div class='chart-frame-header reveal-card rd-1'>"
+                "<div class='chart-frame-title'><i class='fa-solid fa-circle-dot'></i>GG Diagram — Traction Circle</div>"
+                "<div class='chart-frame-meta'><span class='chart-frame-badge'><i class='fa-solid fa-grip'></i>&nbsp;G-FORCE</span></div>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            plot_chart(apply_plotly_style(gg_fig, ""), "gg_diagram")
+
+            # ── Advanced Analytics ─────────────────────────────────────────
+            st.markdown(
+                "<div class='reveal-card rd-1'><div class='section-sep'>"
+                "<div class='section-sep-icon'><i class='fa-solid fa-cloud-sun'></i></div>"
+                "<span class='section-sep-label'>Weather Impact</span>"
+                "<div class='section-sep-line'></div>"
+                "</div></div>",
+                unsafe_allow_html=True,
+            )
+            _adv_analytics.render_weather_impact(session, drivers)
+            st.markdown(
+                "<div class='reveal-card rd-1'><div class='section-sep'>"
+                "<div class='section-sep-icon'><i class='fa-solid fa-rotate'></i></div>"
+                "<span class='section-sep-label'>Understeer / Oversteer</span>"
+                "<div class='section-sep-line'></div>"
+                "</div></div>",
+                unsafe_allow_html=True,
+            )
+            _adv_analytics.render_understeer_oversteer(session, drivers)
+            st.markdown(
+                "<div class='reveal-card rd-1'><div class='section-sep'>"
+                "<div class='section-sep-icon'><i class='fa-solid fa-fire'></i></div>"
+                "<span class='section-sep-label'>Engine Braking</span>"
+                "<div class='section-sep-line'></div>"
+                "</div></div>",
+                unsafe_allow_html=True,
+            )
+            _adv_analytics.render_engine_braking(session, drivers)
 
     render_structural_coach(metrics_data, use_expander=ai_debrief_expander)
 
-    st.markdown("---")
-    st.markdown('<div class="f1-card" data-html2canvas-ignore="true">', unsafe_allow_html=True) 
+    st.markdown(
+        "<div class='reveal-card rd-1'>"
+        "<div class='section-sep'>"
+        "<div class='section-sep-icon'><i class='fa-solid fa-map-location-dot'></i></div>"
+        "<span class='section-sep-label'>Telemetry Traces</span>"
+        "<div class='section-sep-line'></div>"
+        "</div></div>",
+        unsafe_allow_html=True,
+    )
 
     s1_dist, s2_dist, dominance_bins, fastest_drivers = None, None, None, None
     
@@ -808,7 +892,13 @@ def render(session, drivers):
 
     if metrics_data:
         with t_track:
-            st.markdown("<div class='channel-config-header' style='margin-bottom:20px;'><i class='fa-solid fa-map-location-dot'></i> 2D DOMINANCE MAP</div>", unsafe_allow_html=True)
+            st.markdown(
+                "<div style='display:flex; align-items:center; margin-bottom:16px;'>"
+                "<i class='fa-solid fa-map-location-dot' style='color:#3b82f6; font-size:1.3rem; margin-right:10px;'></i>"
+                "<h3 style='margin:0; color:#fff; font-family:Geist Mono,monospace; font-size:1.1rem;"
+                " text-transform:uppercase; letter-spacing:1px;'>TRACK DOMINANCE MAP</h3></div>",
+                unsafe_allow_html=True,
+            )
             if dominance_bins is not None:
                 track_fig = go.Figure()
                 ref_x, ref_y, ref_d = ref_tel['X'].values, ref_tel['Y'].values, ref_tel['Distance'].values
@@ -832,14 +922,39 @@ def render(session, drivers):
                     c_num, c_hov = [f"<span style='font-weight: 600;'>{n}</span>" for n in circuit_info.corners['Number']], [f"Turn {n}" for n in circuit_info.corners['Number']]
                     track_fig.add_trace(go.Scatter(x=c_x, y=c_y, mode='text', text=c_num, textposition='middle center', textfont=dict(color="#ffffff", size=16, family="Geist Mono"), hoverinfo='text', hovertext=c_hov, showlegend=False))
                         
-                track_fig.update_layout(plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', xaxis=dict(showgrid=False, zeroline=False, showticklabels=False), yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, scaleanchor="x", scaleratio=1), margin=dict(l=10, r=10, t=20, b=10), showlegend=True, height=650, legend=dict(orientation="h", yanchor="bottom", y=0.03, xanchor="center", x=0.5, font=dict(family="Geist Mono", color="#ffffff", size=13), bgcolor="rgba(15, 15, 15, 0.85)", bordercolor="rgba(255, 255, 255, 0.15)", borderwidth=1, itemsizing='constant'))
-                st.plotly_chart(track_fig, width="stretch")
+                apply_plotly_style(track_fig, "TRACK DOMINANCE MAP")
+                track_fig.update_layout(
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False, scaleanchor="x", scaleratio=1),
+                    margin=dict(l=10, r=10, t=60, b=10),
+                    showlegend=True,
+                    height=650,
+                    font=dict(family="Geist Mono, monospace", size=12),
+                    legend=dict(
+                        orientation="h", yanchor="bottom", y=0.03,
+                        xanchor="center", x=0.5,
+                        font=dict(family="Geist Mono, monospace", color="#ffffff", size=13),
+                        bgcolor="rgba(15,15,15,0.85)",
+                        bordercolor="rgba(255,255,255,0.15)",
+                        borderwidth=1, itemsizing="constant",
+                    ),
+                )
+                st.markdown(
+                    "<div class='chart-frame-header reveal-card rd-1'>"
+                    "<div class='chart-frame-title'><i class='fa-solid fa-map'></i>Track Dominance Map</div>"
+                    "<div class='chart-frame-meta'><span class='chart-frame-badge'><i class='fa-solid fa-road'></i>&nbsp;MICRO-SECTORS</span></div>"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
+                plot_chart(track_fig, "track_dominance")
             else:
                 st.info("Select at least 2 drivers with valid positional data to generate Dominance Map.")
     if chs and laps_cache:
         def render_energy_trace_logic():
             st.markdown("""
-            <div style="background:#1a1a1c; border:1px solid #27272a; border-radius:8px; padding:12px 14px; margin-bottom:12px; display:flex; gap:10px; align-items:flex-start;">
+            <div style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.2); border-left:4px solid #f59e0b; border-radius:8px; padding:12px 14px; margin-bottom:12px; display:flex; gap:10px; align-items:flex-start;">
                 <i class="fa-solid fa-battery-half" style="color:#f59e0b; margin-top:2px;"></i>
                 <div style="color:#a1a1aa; font-family:'Space Grotesk', sans-serif; font-size:0.88rem; line-height:1.5;">
                     <span style="color:#ffffff; font-family:'Geist Mono', monospace; font-size:0.78rem; letter-spacing:0.8px; margin-right:8px;">ENERGY TRACE LOGIC</span>
@@ -917,7 +1032,7 @@ def render(session, drivers):
                 if ch == 'ERS_Energy_2026' and not energy_logic_rendered:
                     render_energy_trace_logic()
                     energy_logic_rendered = True
-                st.plotly_chart(fig, width="stretch", config={'edits': {'annotationPosition': True}}, key=f"plot_{ch}")
+                plot_chart(fig, "telemetry_overlay", key=f"plot_{ch}", extra_config={'edits': {'annotationPosition': True}})
 
         else:
             if 'ERS_Energy_2026' in chs:
@@ -992,7 +1107,7 @@ def render(session, drivers):
 
             fig.update_xaxes(hoverformat=".0f m")
             fig.update_layout(height=450 * total_rows, hovermode='x unified', margin=dict(l=50, r=20, t=20, b=20), separators=".,")
-            st.plotly_chart(fig, width="stretch", config={'edits': {'annotationPosition': True}})
+            plot_chart(fig, "telemetry_trace", extra_config={'edits': {'annotationPosition': True}})
 
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)

@@ -1,6 +1,32 @@
 import plotly.graph_objects as go
 import fastf1.plotting
 
+# Yellow used when a second driver from the same team is selected for comparison
+SAME_TEAM_SECONDARY_COLOR = "#FFD700"
+
+
+def get_comparison_colors(drivers: list, session) -> dict:
+    """
+    Return {driver: color} for a multi-driver comparison context.
+    If two selected drivers belong to the same team, the second one
+    gets SAME_TEAM_SECONDARY_COLOR (yellow) so the traces stay distinct.
+    """
+    seen_teams: dict = {}
+    colors: dict = {}
+    for drv in drivers:
+        try:
+            team = fastf1.plotting.get_team_name_by_driver(drv, session)
+        except Exception:
+            team = None
+        if team and team in seen_teams:
+            colors[drv] = SAME_TEAM_SECONDARY_COLOR
+        else:
+            colors[drv] = get_driver_color(drv, session)
+            if team:
+                seen_teams[team] = drv
+    return colors
+
+
 def get_driver_color(driver, session):
     """
     Recupera il colore ufficiale del pilota dalla sessione FastF1.
@@ -34,46 +60,49 @@ def apply_plotly_style(fig, title=""):
         template="plotly_dark",
         paper_bgcolor='rgba(0,0,0,0)',
         plot_bgcolor='rgba(0,0,0,0)',
-        
-        # Configurazione Font Globale
+
+        # Global font — monospace everywhere for a sharp technical look
         font=dict(
-            family=FONT_SANS, 
-            color="#ededed", 
-            size=12
+            family=FONT_MONO,
+            color="#e4e4e7",
+            size=12,
         ),
-        
-        # Titolo del Grafico
+
+        # Chart title — prominent, left-aligned, high contrast
         title=dict(
-            text=title, 
-            font=dict(size=20, family=FONT_SANS, weight=700),
-            y=0.96,
+            text=title,
+            font=dict(size=15, family=FONT_MONO, color="#ffffff"),
+            y=0.97,
             x=0.01,
-            xanchor='left'
+            xanchor="left",
+            yanchor="top",
+            pad=dict(t=6, l=4),
         ),
-        
-        # Margini ottimizzati per lo scroll della pagina
-        margin=dict(l=60, r=20, t=80, b=60),
-        
-        # Legenda orizzontale compatta (Geist Mono per un look tecnico)
+
+        # Tighter margins: title is small, no need for 80px top
+        margin=dict(l=60, r=24, t=64, b=52),
+
+        # Compact horizontal legend
         legend=dict(
-            orientation="h", 
-            yanchor="bottom", 
-            y=1.02, 
-            xanchor="right", 
-            x=1, 
-            bgcolor='rgba(0,0,0,0)',
-            font=dict(family=FONT_MONO, size=11)
+            orientation="h",
+            yanchor="bottom",
+            y=1.01,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(family=FONT_MONO, size=11, color="#d4d4d8"),
+            itemsizing="constant",
         ),
-        
-        # Hover Label personalizzato (Tooltip)
+
+        # Tooltip
         hoverlabel=dict(
-            bgcolor="#121212",
-            font=dict(family=FONT_MONO, size=13),
-            bordercolor="#27272a"
+            bgcolor="#18181b",
+            font=dict(family=FONT_MONO, size=12, color="#f4f4f5"),
+            bordercolor="#3f3f46",
+            namelength=-1,
         ),
-        
-        # Modalità di interazione
-        hovermode='x unified'
+
+        hovermode="x unified",
     )
 
     # Configurazione Asse X (Geist Mono per i numeri/distanza)
