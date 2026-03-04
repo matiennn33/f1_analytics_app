@@ -1,6 +1,8 @@
 import plotly.graph_objects as go
 import fastf1.plotting
 
+SAME_TEAM_SECOND_DRIVER_COLOR = '#FFBF00'
+
 def get_driver_color(driver, session):
     """
     Recupera il colore ufficiale del pilota dalla sessione FastF1.
@@ -10,6 +12,27 @@ def get_driver_color(driver, session):
         return fastf1.plotting.get_driver_color(driver, session=session)
     except Exception:
         return '#FFFFFF'
+
+def get_driver_colors(drivers, session):
+    """
+    Restituisce un dizionario {driver: color} per la lista di piloti.
+    Se due piloti dello stesso team vengono comparati, il secondo pilota
+    ottiene il colore #FFBF00.
+    """
+    colors = {}
+    seen_teams = {}
+    for driver in drivers:
+        try:
+            team = fastf1.plotting.get_team_name_by_driver(driver, session=session)
+        except Exception:
+            team = None
+        if team and team in seen_teams:
+            colors[driver] = SAME_TEAM_SECOND_DRIVER_COLOR
+        else:
+            colors[driver] = get_driver_color(driver, session)
+            if team:
+                seen_teams[team] = driver
+    return colors
 
 def get_team_color(team, session):
     """

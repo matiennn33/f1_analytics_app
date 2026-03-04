@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from utils.plotting import get_driver_color, apply_plotly_style, get_team_color
+from utils.plotting import get_driver_color, get_driver_colors, apply_plotly_style, get_team_color
 from utils.formatting import fmt_time
 import warnings
 import base64
@@ -636,6 +636,8 @@ def render(session, drivers):
     except Exception:
         pass
 
+    driver_colors = get_driver_colors(drivers, session)
+
     session_key = st.session_state.get("f1_session_key", "unknown")
     base_cache_key = f"{session_key}|base"
     base_cache = st.session_state.setdefault("telemetry_base_cache", {})
@@ -676,7 +678,7 @@ def render(session, drivers):
                     air, trk = 0, 0
 
                 m_entry = {
-                    'Driver': drv, 'Color': get_driver_color(drv, session), 'Team': fast['Team'],
+                    'Driver': drv, 'Color': driver_colors.get(drv, get_driver_color(drv, session)), 'Team': fast['Team'],
                     'ActualLap': fast['LapTime'].total_seconds(),
                     'IdealLap': (laps['Sector1Time'].min() + laps['Sector2Time'].min() + laps['Sector3Time'].min()).total_seconds(),
                     'S1': fast['Sector1Time'].total_seconds(), 'S2': fast['Sector2Time'].total_seconds(), 'S3': fast['Sector3Time'].total_seconds(),
@@ -690,7 +692,7 @@ def render(session, drivers):
                 }
                 m_entry.update(adv)
                 metrics_data.append(m_entry)
-                laps_cache[drv] = {'lap': fast, 'tel': tel, 'color': get_driver_color(drv, session)}
+                laps_cache[drv] = {'lap': fast, 'tel': tel, 'color': driver_colors.get(drv, get_driver_color(drv, session))}
             except Exception:
                 pass
 

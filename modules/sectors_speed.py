@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from utils.plotting import get_driver_color, get_team_color, apply_plotly_style
+from utils.plotting import get_driver_color, get_driver_colors, get_team_color, apply_plotly_style
 from utils.session_store import get_cached_laps
 
 
@@ -12,6 +12,8 @@ def render(session, drivers):
     laps = get_cached_laps(session)
     if not drivers:
         return
+
+    driver_colors = get_driver_colors(drivers, session)
 
     # --- 1. Top Speed ---
     speed_data = []
@@ -75,7 +77,7 @@ def render(session, drivers):
                     "Driver": driver,
                     "Sector": f"Sector {i}",
                     "Time": val.total_seconds(),
-                    "Color": get_driver_color(driver, session),
+                    "Color": driver_colors.get(driver, get_driver_color(driver, session)),
                 }
             )
 

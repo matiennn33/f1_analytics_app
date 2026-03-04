@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from utils.plotting import get_driver_color, apply_plotly_style
+from utils.plotting import get_driver_color, get_driver_colors, apply_plotly_style
 from utils.session_store import get_cached_laps
 
 BG_CARD = "#121212"
@@ -274,10 +274,10 @@ def render_sectors_times(laps, session, sec_mode="MEDIAN"):
     return fig
 
 
-def render_driver_pace(filtered_laps_dict, session):
+def render_driver_pace(filtered_laps_dict, session, driver_colors=None):
     fig = go.Figure()
     for drv, drv_laps in filtered_laps_dict.items():
-        color = get_driver_color(drv, session)
+        color = driver_colors.get(drv, get_driver_color(drv, session)) if driver_colors is not None else get_driver_color(drv, session)
         
         y_seconds = drv_laps['LapTime'].dt.total_seconds()
         y_datetime = pd.to_datetime(y_seconds, unit='s')
@@ -346,6 +346,7 @@ def render(session):
 
     # 1. ESTRAZIONE DEI GIRI FILTRATI IN BASE ALLA CONFIGURAZIONE
     filtered_laps_dict = get_filtered_laps(laps, selected_drivers, lap_range, stints_selected, exclude_slow, exclude_pits, exclude_sc)
+    driver_colors = get_driver_colors(selected_drivers, session)
     
     # 2. RENDER MOTORE DI ANALISI STRUTTURALE SUI DATI FILTRATI
     if len(filtered_laps_dict) >= 2:
@@ -356,7 +357,7 @@ def render(session):
     # 3. RENDER RACE PACE CHART
     st.markdown(f"<div class='f1-card' style='background:{BG_CARD}; border:1px solid {BORDER}; border-radius:12px; padding:15px; margin-bottom:20px;'>", unsafe_allow_html=True)
     if filtered_laps_dict:
-        pace_fig = render_driver_pace(filtered_laps_dict, session)
+        pace_fig = render_driver_pace(filtered_laps_dict, session, driver_colors)
         if pace_fig: st.plotly_chart(pace_fig, width="stretch")
     else: 
         st.warning("Nessun giro valido trovato per i piloti e i filtri selezionati.")
