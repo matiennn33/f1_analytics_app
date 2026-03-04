@@ -1285,6 +1285,190 @@ html { scroll-behavior: smooth; }
     transition: left 0.08s linear, top 0.08s linear, opacity 0.4s ease;
     opacity: 0;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE FIRST
+   All media queries: max-width 768px (phone) and 1024px (tablet)
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── TABLET (≤1024px) ── */
+@media (max-width: 1024px) {
+    .block-container {
+        padding-left: 1.2rem !important;
+        padding-right: 1.2rem !important;
+    }
+    .page-hero h1 { font-size: 2.4rem; }
+    button[kind="primary"] { width: 340px !important; }
+    .hero-orb-1 { width: 280px; height: 280px; }
+    .hero-orb-2 { width: 240px; height: 240px; }
+    .hero-orb-3 { width: 180px; height: 180px; }
+}
+
+/* ── PHONE (≤768px) ── */
+@media (max-width: 768px) {
+
+    /* ── Layout container ── */
+    .block-container {
+        padding-top: 0.5rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+        max-width: 100% !important;
+    }
+
+    /* ── Typography scale ── */
+    h1, .stMarkdown h1 { font-size: 1.45rem !important; letter-spacing: 1px !important; }
+    h2, .stMarkdown h2 { font-size: 1.15rem !important; }
+    h3, .stMarkdown h3 { font-size: 0.92rem !important; }
+    p, .stMarkdown p   { font-size: 0.82rem !important; }
+
+    /* ── Page hero ── */
+    .page-hero { padding: 24px 12px 20px; }
+    .page-hero h1 { font-size: 1.7rem; letter-spacing: 1px; }
+    .page-hero p  { font-size: 0.85rem; }
+
+    /* ── Section title ── */
+    .section-title { font-size: 0.56rem; margin: 24px 0 10px; }
+
+    /* ── Navbar container ── */
+    div[data-testid="stHorizontalBlock"]:first-of-type {
+        border-radius: 16px !important;
+        padding: 10px 16px !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+    }
+    /* Logo column: full width on mobile */
+    div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:first-child {
+        flex: 0 0 auto !important;
+        min-width: 0 !important;
+    }
+    div[data-testid="stHorizontalBlock"]:first-of-type img {
+        height: 36px !important;
+    }
+    /* Nav buttons — tighter text */
+    html body div.stApp div[data-testid="stHorizontalBlock"]:first-of-type div.stButton > button p {
+        font-size: 0.65rem !important;
+        letter-spacing: 1px !important;
+    }
+    /* Language selector pill */
+    div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:last-child div[data-baseweb="select"] > div {
+        min-height: 26px !important;
+        padding: 0 4px 0 8px !important;
+    }
+    div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:last-child div[data-baseweb="select"] div,
+    div[data-testid="stHorizontalBlock"]:first-of-type > div[data-testid="column"]:last-child div[data-baseweb="select"] span {
+        font-size: 0.62rem !important;
+    }
+    .nav-active-item { font-size: 0.65rem; letter-spacing: 1px; }
+
+    /* ── Primary CTA button ── */
+    button[kind="primary"] {
+        width: 100% !important;
+        max-width: 100vw !important;
+        height: 60px !important;
+        border-radius: var(--radius-lg) !important;
+    }
+    button[kind="primary"] p { font-size: 0.9rem !important; letter-spacing: 2px !important; }
+    div.element-container:has(button[kind="primary"]),
+    div[data-testid="stButton"]:has(button[kind="primary"]) {
+        padding: 0 12px !important;
+        margin-bottom: 32px !important;
+    }
+
+    /* ── Tabs — horizontal scroll ── */
+    [data-testid="stTabs"] [data-baseweb="tab-list"] {
+        overflow-x: auto !important;
+        flex-wrap: nowrap !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        padding: 4px !important;
+        gap: 1px !important;
+    }
+    [data-testid="stTabs"] [data-baseweb="tab-list"]::-webkit-scrollbar { display: none !important; }
+    [data-testid="stTabs"] [data-baseweb="tab"] {
+        padding: 8px 14px !important;
+        flex-shrink: 0 !important;
+    }
+    html body .stApp [data-testid="stTabs"] [data-baseweb="tab"] p {
+        font-size: 0.62rem !important;
+        letter-spacing: 0.6px !important;
+        white-space: nowrap !important;
+    }
+    [data-testid="stTabs"] [data-baseweb="tab"] p::before { display: none !important; }
+
+    /* ── Metrics ── */
+    [data-testid="stMetric"] { padding: 14px 16px !important; }
+    [data-testid="stMetricValue"] { font-size: 1.4rem !important; }
+
+    /* ── KPI strip — 2 columns on phone ── */
+    .kpi-strip { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+    .kpi-tile { padding: 12px 14px !important; }
+    .kpi-tile-value { font-size: 1.05rem !important; }
+
+    /* ── Inline KPI row ── */
+    .inline-kpi-row { gap: 8px !important; }
+    .inline-kpi { min-width: 80px !important; padding: 10px 12px !important; }
+    .inline-kpi-value { font-size: 0.95rem !important; }
+
+    /* ── Tab banner — stack vertically ── */
+    .tab-banner {
+        flex-direction: column !important;
+        gap: 8px !important;
+        padding: 14px 16px !important;
+    }
+    .tab-banner-badge { display: none !important; }
+
+    /* ── Chart frame ── */
+    .chart-frame-header { padding: 10px 14px 9px !important; }
+    .chart-frame-title  { font-size: 0.56rem !important; }
+
+    /* ── Hero background orbs — smaller on mobile ── */
+    .hero-orb-1 { width: 200px; height: 200px; top: -60px; left: -60px; }
+    .hero-orb-2 { width: 160px; height: 160px; top: 120px; right: -60px; }
+    .hero-orb-3 { display: none; }
+
+    /* ── Data pill ── */
+    .data-pill { font-size: 0.55rem !important; padding: 3px 8px 3px 6px !important; }
+
+    /* ── Section separator ── */
+    .section-sep { margin: 24px 0 14px !important; }
+
+    /* ── Sidebar always-on-top on mobile ── */
+    [data-testid="stSidebar"] { z-index: 999 !important; }
+
+    /* ── Show sidebar toggle button on all routes ── */
+    [data-testid="collapsedControl"] { display: flex !important; }
+
+    /* ── Expander ── */
+    div[data-testid="stExpander"] summary { padding: 12px 16px !important; }
+    div[data-testid="stExpanderDetails"] { padding: 14px 12px !important; }
+
+    /* ── Scrollbar hidden on mobile ── */
+    ::-webkit-scrollbar { width: 2px; height: 2px; }
+
+    /* ── stWidgetLabel ── */
+    .stWidgetLabel p, label p, [data-testid="stWidgetLabel"] p {
+        font-size: 0.68rem !important;
+        letter-spacing: 0.7px !important;
+    }
+
+    /* ── Sidebar footer ── */
+    .sb-footer { font-size: 0.64rem !important; }
+
+    /* ── Column stagger animations — reduce delay on mobile ── */
+    .main [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1) { animation-delay: 0s !important; }
+    .main [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) { animation-delay: 0.04s !important; }
+    .main [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3) { animation-delay: 0.08s !important; }
+    .main [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4) { animation-delay: 0.12s !important; }
+    .main [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5) { animation-delay: 0.16s !important; }
+
+    /* ── Plotly chart — ensure full width ── */
+    [data-testid="stPlotlyChart"] { border-radius: var(--radius-md) !important; }
+
+    /* ── Select/Multiselect dropdown ── */
+    div[data-baseweb="select"] > div { min-height: 36px !important; }
+    div[data-baseweb="popover"] ul { max-height: 220px !important; overflow-y: auto !important; }
+}
 """
     _links_json = json.dumps(_FONT_LINKS)
     _css_json   = json.dumps(_CSS)
@@ -1292,6 +1476,16 @@ html { scroll-behavior: smooth; }
 <script>
 (function() {{
   var doc = window.parent.document;
+
+  /* ── viewport meta — prevents mobile browsers from zooming out ── */
+  if (!doc.querySelector('meta[name="viewport"]')) {{
+    var vm = doc.createElement('meta');
+    vm.name = 'viewport';
+    vm.content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0';
+    doc.head.appendChild(vm);
+  }} else {{
+    doc.querySelector('meta[name="viewport"]').content = 'width=device-width, initial-scale=1.0, maximum-scale=5.0';
+  }}
 
   /* ── inject fonts & CSS ── */
   var links = {_links_json};

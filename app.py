@@ -28,6 +28,11 @@ if st.session_state["current_route"] != "dashboard":
         <style>
             [data-testid="stSidebar"] { display: none !important; }
             [data-testid="collapsedControl"] { display: none !important; }
+            /* On mobile: always hide sidebar on non-dashboard pages */
+            @media (max-width: 768px) {
+                [data-testid="stSidebar"] { display: none !important; }
+                [data-testid="collapsedControl"] { display: none !important; }
+            }
         </style>
     """,
         unsafe_allow_html=True,

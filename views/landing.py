@@ -254,6 +254,64 @@ def render():
             letter-spacing: 1.4px; text-transform: uppercase; color: #3a3a3f;
         }}
         .landing-credits span {{ color: #71717a; }}
+
+        /* ── RESPONSIVE — MOBILE ── */
+        @media (max-width: 768px) {{
+            /* Hero mockup: reduced height, single column */
+            .hero-visual {{
+                height: auto !important;
+                min-height: 220px !important;
+                margin: 24px auto 0 auto !important;
+                border-radius: 14px !important;
+            }}
+            .mockup-body {{
+                grid-template-columns: 1fr !important;
+                padding: 14px !important;
+                gap: 12px !important;
+                min-height: 180px !important;
+            }}
+            /* Hide the right panel columns on very small screens */
+            .mockup-body > div:last-child {{ display: none !important; }}
+            .mockup-header {{ padding: 0 14px !important; }}
+
+            /* Stats row: 2x2 grid */
+            .stats-row {{
+                display: grid !important;
+                grid-template-columns: 1fr 1fr !important;
+                gap: 0 !important;
+                padding: 20px 16px !important;
+                margin: 32px auto 0 auto !important;
+                border-radius: 16px !important;
+            }}
+            .stat-item {{ padding: 12px 8px !important; }}
+            .stat-number {{ font-size: 1.8rem !important; }}
+            .stat-label {{ font-size: 0.64rem !important; letter-spacing: 0.8px !important; }}
+            .stat-sep {{ display: none !important; }}
+
+            /* Bento grid: 1 column */
+            .bento-card {{
+                padding: 24px 20px !important;
+                border-radius: 16px !important;
+            }}
+            .bento-card:hover {{ transform: none !important; }}
+            .bento-icon {{ width: 40px !important; height: 40px !important; margin-bottom: 16px !important; font-size: 1rem !important; }}
+
+            /* Section badge */
+            .section-badge {{ font-size: 0.6rem !important; letter-spacing: 1.2px !important; padding: 7px 16px !important; }}
+
+            /* Hero */
+            .hero-section {{ margin-top: 20px !important; }}
+            .saas-badge {{ font-size: 0.62rem !important; padding: 8px 18px !important; letter-spacing: 1.5px !important; }}
+            .saas-badge-container {{ margin-bottom: 20px !important; }}
+
+            /* Separator */
+            .section-sep {{ margin: 40px auto 0 auto !important; }}
+            .section-label-row {{ margin: 32px 0 28px 0 !important; }}
+        }}
+        @media (max-width: 480px) {{
+            .stats-row {{ grid-template-columns: 1fr !important; }}
+            .stat-item {{ padding: 10px 8px !important; }}
+        }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -280,7 +338,7 @@ def render():
             <span class="hero-title-line1">{t("hero_line1")}</span>
             <span class="hero-title-line2">{t("hero_line2")}</span>
         </div>
-        <p class="hero-desc-anim" style="font-family:'Space Grotesk',sans-serif; font-size:1.18rem; color:#71717a; max-width:720px; margin:0 auto 54px auto; line-height:1.7;">
+        <p class="hero-desc-anim" style="font-family:'Space Grotesk',sans-serif; font-size:clamp(0.85rem,2.5vw,1.18rem); color:#71717a; max-width:720px; margin:0 auto 54px auto; line-height:1.7;">
             {t("hero_desc")}
         </p>
     </div>
@@ -384,7 +442,7 @@ def render():
 
     # ── BENTO GRID ───────────────────────────────────────────────────────────
     st.markdown(f"""
-    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:26px; max-width:1280px; margin:0 auto 90px auto; padding:0 16px;">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:26px; max-width:1280px; margin:0 auto 90px auto; padding:0 16px;">
         <div class="bento-card">
             <div class="bento-icon"><i class="fa-solid fa-gauge-high"></i></div>
             <h3 style="font-family:'Geist Mono',monospace; color:#f4f4f5; margin-bottom:14px; font-size:1.22rem; font-weight:700;">{t("bento_1_title")}</h3>
