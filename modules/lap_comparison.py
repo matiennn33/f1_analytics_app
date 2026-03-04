@@ -209,7 +209,7 @@ def render_lap_comparison_ui(session) -> None:
         # --- TELEMETRY CHANNEL SELECTION ---
         st.markdown("**⚙️ Select Telemetry Channels to Compare**")
 
-        available_channels = ["Speed", "Throttle", "Brake", "RPM", "Gear"]
+        available_channels = ["Speed", "Throttle", "Brake", "RPM", "Gear", "Acceleration"]
         selected_channels = st.multiselect(
             "Channels",
             available_channels,

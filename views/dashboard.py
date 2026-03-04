@@ -4,7 +4,7 @@ import streamlit as st
 import fastf1
 import pandas as pd
 from typing import Optional
-from modules import telemetry, strategy, race, lap_comparison
+from modules import telemetry, strategy, race
 from utils.session_store import ensure_state, get_f1_data, store_loaded_session
 from utils.logger import log_error, log_info, log_warning, validate_inputs
 from utils.persistence import save_session_to_url, restore_session_from_url
@@ -190,18 +190,14 @@ def render() -> None:
         session = st.session_state["f1_session"]
         drivers = st.session_state.get("selected_drivers", [])
 
-        tab_tel, tab_comparison, tab_race, tab_strat = st.tabs([
+        tab_tel, tab_race, tab_strat = st.tabs([
             "TELEMETRY ANALYSIS",
-            "LAP COMPARISON",
             "RACE HISTORY",
             "STRATEGY & TYRES",
         ])
 
         with tab_tel:
             telemetry.render(session, drivers)
-
-        with tab_comparison:
-            lap_comparison.render(session)
 
         with tab_race:
             race.render(session)

@@ -153,6 +153,7 @@ def get_y_title(ch, br_mode):
         'RPM': 'RPM',
         'Gear': 'GEAR',
         'Delta': 'DELTA (S)',
+        'Acceleration': 'ACCELERATION (M/S²)',
         'G_Long': 'LONGITUDINAL G',
         'G_Lat': 'LATERAL G',
         'ERS_Energy_2026': 'ENERGY (%)'
@@ -272,6 +273,7 @@ def add_ers_2026_channels(tel, base_kw=350, team_name=""):
     tel['ERS_Deploy_2026'] = pd.Series(deploy_eff_kw, index=tel.index).rolling(2, min_periods=1).mean()
     tel['ERS_Recovery_2026'] = pd.Series(rec_eff_kw, index=tel.index).rolling(2, min_periods=1).mean()
     tel['ERS_Energy_2026'] = pd.Series(energy, index=tel.index).rolling(4, min_periods=1).mean()
+    tel['Acceleration'] = pd.Series(accel, index=tel.index).rolling(3, min_periods=1).mean()
     return tel
 
 def render_standard_card(d, best_s, best_lap, session):
@@ -608,7 +610,7 @@ def render(session, drivers):
         with c_cfg_1:
             chs = st.multiselect(
                 "CHANNELS TO DISPLAY",
-                ['Delta', 'Speed', 'Throttle', 'Brake', 'RPM', 'Gear', 'ERS_Energy_2026'],
+                ['Delta', 'Speed', 'Throttle', 'Brake', 'RPM', 'Gear', 'Acceleration', 'ERS_Energy_2026'],
                 default=['Delta', 'Speed', 'Throttle', 'Brake']
             )
             br_mode_toggle = st.toggle("ESTIMATE BRAKE PRESSURE", value=False)
@@ -695,6 +697,22 @@ def render(session, drivers):
                 pass
 
     valid_drivers = [d for d in drivers if d in laps_cache]
+
+    # Assegna colore FFBF00 al secondo pilota dello stesso team del primo
+    if len(valid_drivers) >= 2:
+        first_driver_team = metrics_data[0].get('Team') if metrics_data else None
+        for i, drv in enumerate(valid_drivers[1:], 1):
+            driver_team = laps_cache[drv].get('team') if hasattr(laps_cache[drv], 'get') else None
+            # Se il campo 'team' non è in laps_cache, otteniamolo da metrics_data
+            if not driver_team:
+                for m in metrics_data:
+                    if m['Driver'] == drv:
+                        driver_team = m.get('Team')
+                        break
+
+            # Se è il secondo pilota e dello stesso team del primo, assegna colore FFBF00
+            if i == 1 and driver_team and first_driver_team and driver_team == first_driver_team:
+                laps_cache[drv]['color'] = '#FFBF00'
 
     if metrics_data:
         t_stats, t_dyn, t_track = st.tabs(["LAP PERFORMANCE", "ADVANCED DYNAMICS", "TRACK DOMINANCE"])
