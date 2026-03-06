@@ -37,7 +37,7 @@ def plot_chart(fig, filename: str = "f1_chart", key: str = None, extra_config: d
             else:
                 config[k] = v
 
-    kwargs = {"config": config, "use_container_width": True}
+    kwargs = {"config": config, "width": "stretch"}
     if key is not None:
         kwargs["key"] = key
 

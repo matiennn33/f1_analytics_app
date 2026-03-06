@@ -58,7 +58,7 @@ def render():
         sessions_list = get_event_sessions(year, event_name)
         session_type = st.selectbox("Session", sessions_list, key="main_sb_session")
 
-        if st.button("LOAD SESSION", key="main_btn_load", use_container_width=True):
+        if st.button("LOAD SESSION", key="main_btn_load", width='stretch'):
             with st.spinner("LOADING DATA..."):
                 try:
                     schedule = fastf1.get_event_schedule(year)
@@ -114,7 +114,7 @@ def render():
                 for fi, fdrv in enumerate(fav_available):
                     with fav_cols[fi % 4]:
                         if st.button(fdrv, key=f"fav_quick_{fdrv}",
-                                     use_container_width=True, help=fdrv):
+                                     width='stretch', help=fdrv):
                             cur = st.session_state.get("main_sb_drivers", [])
                             if fdrv not in cur:
                                 st.session_state["main_sb_drivers"] = cur + [fdrv]
@@ -142,7 +142,7 @@ def render():
                             if st.button(
                                 f"{star} {drv_code}",
                                 key=f"fav_toggle_{drv_code}",
-                                use_container_width=True,
+                                width='stretch',
                                 help="Remove" if is_fav else "Add to favourites",
                             ):
                                 toggle_favorite_driver(drv_code)
@@ -172,7 +172,7 @@ def render():
                         csv_bytes,
                         file_name=f"laps_{ev_name_exp}_{sess_type_exp}.csv",
                         mime="text/csv",
-                        use_container_width=True,
+                        width='stretch',
                         key="dl_csv",
                     )
 
@@ -223,13 +223,13 @@ def render():
                             st.session_state["_export_zip"],
                             file_name=f"charts_{ev_name_exp}.zip",
                             mime="application/zip",
-                            use_container_width=True,
+                            width='stretch',
                             key="dl_zip",
                         )
                     else:
                         if st.button(
                             "⚙ Prepare Charts ZIP",
-                            use_container_width=True,
+                            width='stretch',
                             key="btn_prep_zip",
                         ):
                             with st.spinner(f"Rendering {n_charts} chart(s)…"):
@@ -251,13 +251,13 @@ def render():
                                 st.session_state["_export_pdf"],
                                 file_name=f"report_{ev_name_exp}.pdf",
                                 mime="application/pdf",
-                                use_container_width=True,
+                                width='stretch',
                                 key="dl_pdf",
                             )
                         else:
                             if st.button(
                                 "⚙ Prepare PDF Report",
-                                use_container_width=True,
+                                width='stretch',
                                 key="btn_prep_pdf",
                             ):
                                 with st.spinner(f"Rendering PDF ({n_charts} pages)…"):
@@ -272,7 +272,7 @@ def render():
 
         # ── Footer ───────────────────────────────────────────────
         st.markdown("<div class='sb-divider'></div>", unsafe_allow_html=True)
-        if st.button("← BACK TO HOME", key="btn_back_home", use_container_width=True):
+        if st.button("← BACK TO HOME", key="btn_back_home", width='stretch'):
             st.session_state["current_route"] = "landing"
             st.rerun()
         st.markdown(

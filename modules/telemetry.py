@@ -625,6 +625,11 @@ def render(session, drivers):
         " text-transform:uppercase; letter-spacing:1px;'>PERFORMANCE INSIGHTS</h4></div>",
         unsafe_allow_html=True,
     )
+    circuit_info = None
+    try:
+        circuit_info = session.get_circuit_info()
+    except Exception:
+        pass
     with st.expander("CONFIGURAZIONE GRAFICI", expanded=False):
         st.markdown("<div style='font-family: Geist Mono; font-size:0.65rem; color:#71717a; margin-top:12px; margin-bottom:12px; letter-spacing: 1px;'>IMPOSTAZIONI TELEMETRIA</div>", unsafe_allow_html=True)
         c_cfg_1, c_cfg_2 = st.columns(2)
@@ -638,10 +643,16 @@ def render(session, drivers):
             br_mode = "Pressure" if br_mode_toggle else "On/Off"
             show_apex = st.toggle("SHOW APEX VELOCITY", value=True)
             search_range = st.number_input("APEX SEARCH RANGE (M)", min_value=10, max_value=150, value=50, step=10) if show_apex else 50
+            if show_apex and circuit_info is not None:
+                _all_corners = [int(c['Number']) for _, c in circuit_info.corners.iterrows()]
+                apex_visible = st.multiselect("APEX CORNERS VISIBLE", options=_all_corners, default=_all_corners, format_func=lambda x: f"T{x}", key="apex_corners_ms")
+            else:
+                apex_visible = list(range(1, 50))
             speed_dom = st.toggle("SPEED DOMINANCE COLOR", value=False)
             num_microsectors = st.number_input("MICRO-SECTORS", min_value=20, max_value=500, value=80, step=10) if speed_dom else 80
         with c_cfg_2:
             sep_plots = st.toggle("SINGLE PLOT CAPTURE", value=False)
+            trace_width = st.slider("TRACE LINE WIDTH", min_value=1.0, max_value=6.0, value=2.5, step=0.5)
             st.markdown("<div style='font-family: Geist Mono; font-size:0.65rem; color:#71717a; margin-top:6px; margin-bottom:8px; letter-spacing: 1px;'>SMOOTHING FILTERS</div>", unsafe_allow_html=True)
             glat_smooth = st.number_input("LATERAL G SMOOTHING WINDOW", min_value=1, max_value=100, value=15, step=1)
             st.markdown("<div style='font-family: Geist Mono; font-size:0.65rem; color:#71717a; margin-top:6px; margin-bottom:8px; letter-spacing: 1px;'>ERS 2026 MODEL</div>", unsafe_allow_html=True)
@@ -651,11 +662,6 @@ def render(session, drivers):
     if not drivers: return
     
     metrics_data, laps_cache = [], {}
-    circuit_info = None
-    try:
-        circuit_info = session.get_circuit_info()
-    except Exception:
-        pass
 
     _cmp_colors = get_comparison_colors(drivers, session)
 
@@ -975,11 +981,11 @@ def render(session, drivers):
                         ref_driver = min(valid_drivers, key=lambda d: laps_cache[d]['lap']['LapTime'])
                         ref_lap = laps_cache[ref_driver]['lap']
                         ref_tel = laps_cache[ref_driver]['tel']
-                        fig.add_trace(go.Scatter(x=ref_tel['Distance'], y=np.zeros(len(ref_tel)), name=f"{ref_driver} (REF)", line=dict(color=laps_cache[ref_driver]['color'], width=2, dash='dot'), hovertemplate="%{y:.3f}s"))
+                        fig.add_trace(go.Scatter(x=ref_tel['Distance'], y=np.zeros(len(ref_tel)), name=f"{ref_driver} (REF)", line=dict(color=laps_cache[ref_driver]['color'], width=trace_width, dash='dot'), hovertemplate="%{y:.3f}s"))
                         for target in valid_drivers:
                             if target != ref_driver:
                                 delta_t, dt_ref_tel, _ = fastf1.utils.delta_time(ref_lap, laps_cache[target]['lap'])
-                                fig.add_trace(go.Scatter(x=dt_ref_tel['Distance'], y=delta_t, name=f"{target} Delta", line=dict(color=laps_cache[target]['color'], width=3.5), fill='tozeroy' if len(valid_drivers) == 2 else 'none', hovertemplate="%{y:.3f}s"))
+                                fig.add_trace(go.Scatter(x=dt_ref_tel['Distance'], y=delta_t, name=f"{target} Delta", line=dict(color=laps_cache[target]['color'], width=trace_width), fill='tozeroy' if len(valid_drivers) == 2 else 'none', hovertemplate="%{y:.3f}s"))
                     fig.update_yaxes(title_text=get_y_title('Delta', br_mode), title_font=dict(family="Geist Mono", size=11, color=TEXT_M), showgrid=True, gridcolor=grid_color, zeroline=False, minor=dict(ticklen=4, tickmode="linear", tick0=0, dtick=minor_dtick, showgrid=True, gridcolor=grid_color))
                 else:
                     for drv in drivers:
@@ -991,7 +997,7 @@ def render(session, drivers):
                             else: y_val = t[ch] if ch in t.columns else pd.Series(np.zeros(len(t)), index=t.index)
                             fill_mode = 'tozeroy' if (ch == 'Brake' and br_mode == "Pressure") else 'none'
                             htpl = "%{y:.1f}%<extra></extra>" if ch == 'ERS_Energy_2026' else "%{y:.1f}<extra></extra>"
-                            fig.add_trace(go.Scatter(x=t['Distance'], y=y_val, name=drv, line=dict(color=laps_cache[drv]['color'], width=2.5 if fill_mode=='tozeroy' else 3.5), fill=fill_mode, hovertemplate=htpl))
+                            fig.add_trace(go.Scatter(x=t['Distance'], y=y_val, name=drv, line=dict(color=laps_cache[drv]['color'], width=trace_width), fill=fill_mode, hovertemplate=htpl))
                     
                     if ch == 'Speed' and speed_dom and dominance_bins is not None:
                         for i in range(num_microsectors):
@@ -1013,7 +1019,7 @@ def render(session, drivers):
                                     tel_d = laps_cache[d]['tel']
                                     v_min = tel_d[(tel_d['Distance'] > dist - search_range) & (tel_d['Distance'] < dist + search_range)]['Speed'].min()
                                     v_list.append({'n': d, 'v': v_min, 'c': laps_cache[d]['color']})
-                            if v_list:
+                            if v_list and int(c_num) in apex_visible:
                                 v_list.sort(key=lambda x: x['v'], reverse=True)
                                 v_f = v_list[0]
                                 apex_html = f"<b style='color:{v_f['c']}; font-size:13px;'>{v_f['n']} {v_f['v']:.0f}</b>"
@@ -1050,11 +1056,11 @@ def render(session, drivers):
                         ref_driver = min(valid_drivers, key=lambda d: laps_cache[d]['lap']['LapTime'])
                         ref_lap = laps_cache[ref_driver]['lap']
                         ref_tel = laps_cache[ref_driver]['tel']
-                        fig.add_trace(go.Scatter(x=ref_tel['Distance'], y=np.zeros(len(ref_tel)), name=f"{ref_driver} (REF)", legendgroup=ref_driver, line=dict(color=laps_cache[ref_driver]['color'], width=2, dash='dot'), hovertemplate="%{y:.3f}s"), row=curr_row, col=1)
+                        fig.add_trace(go.Scatter(x=ref_tel['Distance'], y=np.zeros(len(ref_tel)), name=f"{ref_driver} (REF)", legendgroup=ref_driver, line=dict(color=laps_cache[ref_driver]['color'], width=trace_width, dash='dot'), hovertemplate="%{y:.3f}s"), row=curr_row, col=1)
                         for target in valid_drivers:
                             if target != ref_driver:
                                 delta_t, dt_ref_tel, _ = fastf1.utils.delta_time(ref_lap, laps_cache[target]['lap'])
-                                fig.add_trace(go.Scatter(x=dt_ref_tel['Distance'], y=delta_t, name=f"{target} Delta", legendgroup=target, line=dict(color=laps_cache[target]['color'], width=3.5), fill='tozeroy' if len(valid_drivers) == 2 else 'none', hovertemplate="%{y:.3f}s"), row=curr_row, col=1)
+                                fig.add_trace(go.Scatter(x=dt_ref_tel['Distance'], y=delta_t, name=f"{target} Delta", legendgroup=target, line=dict(color=laps_cache[target]['color'], width=trace_width), fill='tozeroy' if len(valid_drivers) == 2 else 'none', hovertemplate="%{y:.3f}s"), row=curr_row, col=1)
                     fig.update_yaxes(title_text=get_y_title('Delta', br_mode), title_font=dict(family="Geist Mono", size=11, color=TEXT_M), row=curr_row, col=1, showgrid=True, gridcolor=grid_color, zeroline=False, minor=dict(ticklen=4, tickmode="linear", tick0=0, dtick=minor_dtick, showgrid=True, gridcolor=grid_color))
                 else:
                     for drv in drivers:
@@ -1066,7 +1072,7 @@ def render(session, drivers):
                             else: y_val = t[ch] if ch in t.columns else pd.Series(np.zeros(len(t)), index=t.index)
                             fill_mode = 'tozeroy' if (ch == 'Brake' and br_mode == "Pressure") else 'none'
                             htpl = "%{y:.1f}%<extra></extra>" if ch == 'ERS_Energy_2026' else "%{y:.1f}<extra></extra>"
-                            fig.add_trace(go.Scatter(x=t['Distance'], y=y_val, name=drv, legendgroup=drv, showlegend=(curr_row == 1), line=dict(color=laps_cache[drv]['color'], width=2.5 if fill_mode=='tozeroy' else 3.5), fill=fill_mode, hovertemplate=htpl), row=curr_row, col=1)
+                            fig.add_trace(go.Scatter(x=t['Distance'], y=y_val, name=drv, legendgroup=drv, showlegend=(curr_row == 1), line=dict(color=laps_cache[drv]['color'], width=trace_width), fill=fill_mode, hovertemplate=htpl), row=curr_row, col=1)
                     
                     if ch == 'Speed' and speed_dom and dominance_bins is not None:
                         for i in range(num_microsectors):
@@ -1088,7 +1094,7 @@ def render(session, drivers):
                                     tel_d = laps_cache[d]['tel']
                                     v_min = tel_d[(tel_d['Distance'] > dist - search_range) & (tel_d['Distance'] < dist + search_range)]['Speed'].min()
                                     v_list.append({'n': d, 'v': v_min, 'c': laps_cache[d]['color']})
-                            if v_list:
+                            if v_list and int(c_num) in apex_visible:
                                 v_list.sort(key=lambda x: x['v'], reverse=True)
                                 v_f = v_list[0]
                                 apex_html = f"<b style='color:{v_f['c']}; font-size:13px;'>{v_f['n']} {v_f['v']:.0f}</b>"
